@@ -1,0 +1,59 @@
+# Full stack for the demo. Requires .env (copy .env.example and change the passwords).
+#   docker compose up -d --build --wait
+name: vigiles
+
+x-db-passwords: &db-passwords
+  REGISTRY_DB_PASSWORD: ${REGISTRY_DB_PASSWORD:?set it in .env}
+  IMPORTER_DB_PASSWORD: ${IMPORTER_DB_PASSWORD:?set it in .env}
+  HUB_DB_PASSWORD: ${HUB_DB_PASSWORD:?set it in .env}
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
+      <<: *db-passwords
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sh:/docker-entrypoint-initdb.d/10-vigiles.sh:ro
+      - ./infra/postgres/init.sql:/vigiles/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      # TCP check: during initialisation the server listens only on the socket.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d registry"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  registry-migrate:
+    build:
+      context: .
+      dockerfile: services/registry/Dockerfile
+    command: ["vigiles-registry", "migrate"]
+    environment:
+      REGISTRY_DATABASE_URL: postgresql://registry_app:${REGISTRY_DB_PASSWORD}@postgres:5432/registry
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  importer:
+    build:
+      context: .
+      dockerfile: tools/importer/Dockerfile
+    command: ["vigiles-import", "watch"]
+    environment:
+      IMPORTER_DATABASE_URL: postgresql://importer:${IMPORTER_DB_PASSWORD}@postgres:5432/registry
+      IMPORTER_DATA_DIR: /data
+      IMPORTER_POLL_INTERVAL_S: "10"
+    volumes:
+      - ./data:/data
+    depends_on:
+      registry-migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  pgdata:
