@@ -63,11 +63,12 @@ def test_importer_cannot_delete_or_change_schema(registry_db: Database) -> None:
 
 
 def test_migrate_command(empty_db: Database, monkeypatch: pytest.MonkeyPatch) -> None:
-    from vigiles_registry.cli import main
+    from vigiles_registry.cli import MIGRATIONS_DIR, main
 
     monkeypatch.setenv("REGISTRY_DATABASE_URL", empty_db.owner_url)
     main(["migrate"])
     main(["migrate"])
 
     with psycopg.connect(empty_db.owner_url) as conn:
-        assert conn.execute("SELECT count(*) FROM schema_migrations").fetchone() == (1,)
+        versions = conn.execute("SELECT count(*) FROM schema_migrations").fetchone()[0]
+    assert versions == len(list(MIGRATIONS_DIR.glob("*.sql")))
