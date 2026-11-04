@@ -15,7 +15,7 @@ ancient Rome established by Augustus in 6 AD.
 | Grade | Integration style | Status |
 |---|---|---|
 | 3.0 | File Transfer: CSV/JSON importer -> PostgreSQL | done (`v3.0`) |
-| 4.0 | Remote Procedure Invocation: two-way REST sync between the Registry and the field app | planned |
+| 4.0 | Remote Procedure Invocation: two-way REST sync between the Registry and the field app | done (`v4.0`) |
 | 5.0 | Messaging: MQTT, integration hub with EIP patterns, Keycloak, resilience | planned |
 
 The full specification is in [`PLAN.md`](PLAN.md).
@@ -29,6 +29,19 @@ rejected rows with reasons to `data/error`, and archives the file. It runs
 on demand (`vigiles-import run`) or polls the inbox every 10 s
 (`vigiles-import watch`). If the database is down the file stays in the
 inbox and is imported in the next cycle. Details: [`docs/import.md`](docs/import.md).
+
+## What works in 4.0
+
+The Registry (System B, PostgreSQL) and the field app (System A, SQLite)
+synchronise both ways over REST. A manager creates a work order in the
+Registry UI (http://localhost:8001); a webhook makes the field app
+(http://localhost:8002) pull the change feed within seconds; the
+technician records the inspection, which goes back to the Registry and
+closes the order. Concurrent edits are merged field by field with field
+ownership; a concurrent edit of `notes` becomes a conflict a manager
+resolves. The field app keeps working offline and when the Registry is
+down. Services authenticate with bearer tokens. Details:
+[`docs/sync-protocol.md`](docs/sync-protocol.md).
 
 ## Running with Docker (demo)
 
@@ -57,6 +70,9 @@ Imported files appear in `data/archive`, the report of rejected rows in
 docker compose exec postgres psql -U postgres -d registry -c "select code, asset_type, fire_rating, rev from assets"
 ```
 
+Registry UI: http://localhost:8001 (log in as `anna.kierownik`), field
+app: http://localhost:8002 (log in as `jan.technik`).
+
 ## Running without Docker
 
 For environments where container images cannot be downloaded. Requires
@@ -75,8 +91,16 @@ uv run vigiles-registry migrate
 ```
 
 ```bash
-uv run vigiles-import run data/samples/zestawienie_B1.csv
+uv run python scripts/supervisor.py up
 ```
+
+```bash
+cp data/samples/zestawienie_B1.csv data/inbox/
+```
+
+`supervisor.py` runs the registry (8001), the field app (8002) and the
+importer as local processes (`status`, `stop <node>`, `start <node>`,
+`kill <node>`, `down`); logs are in `.local/logs/`.
 
 `local_up.py` installs PostgreSQL 16 and Mosquitto 2 when missing, starts
 them, creates `.env` from `.env.example` if needed and applies
@@ -92,20 +116,27 @@ uv run pytest -m unit
 uv run pytest -m component
 ```
 
+```bash
+uv run pytest -m "e2e or chaos"
+```
+
 Component tests need PostgreSQL with the project roles (`local_up.py`);
-each test gets a throwaway database. CI (`.github/workflows/ci.yml`) runs
-both levels and a compose smoke test that imports the samples through the
-running containers.
+each test gets a throwaway database. E2e and chaos tests start the
+registry, the field app and the importer as real processes on ports
+18001/18002 and stop or kill them through `NodeController`. CI
+(`.github/workflows/ci.yml`) runs all levels and a compose smoke test.
 
 ## Repository layout
 
 ```
-libs/common/       settings, JSON logging, correlation ID, problem+json, health, retry, migrations
-services/registry/ System B: schema and migrations (API from 4.0)
+libs/common/       settings, JSON logging, correlation ID, problem+json, health, retry,
+                   migrations, auth, outbox relay, shared UI
+services/registry/ System B: API, sync, conflicts, UI, migrations
+services/field_app/ System A: SQLite, translator, sync engine, UI
 tools/importer/    file transfer importer
 infra/postgres/    databases and roles
 data/samples/      sample input files; inbox/, archive/, error/ are working folders
-scripts/           local_up.py - local infrastructure without Docker
-tests/             unit/, component/, harness/
+scripts/           local_up.py (infrastructure), supervisor.py (processes) without Docker
+tests/             unit/, component/, e2e/, chaos/, harness/
 docs/              documentation
 ```
