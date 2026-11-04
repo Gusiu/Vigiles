@@ -1,0 +1,32 @@
+[project]
+name = "vigiles"
+version = "0.1.0"
+description = "Fire protection maintenance and monitoring platform - integration workshop project"
+requires-python = ">=3.12,<3.13"
+dependencies = ["vigiles-common"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "httpx>=0.27",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["libs/*"]
+
+[tool.uv.sources]
+vigiles-common = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers -ra --import-mode=importlib"
+pythonpath = ["tests"]
+markers = [
+    "unit: fast tests without external dependencies",
+    "component: tests that need PostgreSQL 16 and/or Mosquitto 2",
+    "e2e: end-to-end scenarios on the full stack",
+    "chaos: failure scenarios on the full stack",
+]
