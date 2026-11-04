@@ -17,7 +17,8 @@ from harness.nodes import NodeController, supervisor
 from harness.registry import SERVICE_TOKENS
 
 SAMPLES = Path(__file__).resolve().parents[2] / "data" / "samples"
-REGISTRY_PORT, FIELD_APP_PORT, HUB_PORTS, GATEWAY_PORT, MQTT_PORT = 18001, 18002, (18003, 18004), 18005, 11883
+REGISTRY_PORT, FIELD_APP_PORT, HUB_PORTS, GATEWAY_PORT, MQTT_PORT, ISSUER_PORT = 18001, 18002, (18003, 18004), 18005, 11883, 18006
+ISSUER = f"http://127.0.0.1:{ISSUER_PORT}"
 GATEWAY_KEY = {"X-Api-Key": "t-gateway"}
 
 
@@ -86,8 +87,18 @@ def local_stack(tmp: Path, messaging: bool = False) -> Iterator[Stack]:
             "REGISTRY_URL": f"http://127.0.0.1:{REGISTRY_PORT}",
             "FIELD_APP_URL": f"http://127.0.0.1:{FIELD_APP_PORT}",
             "FIELD_APP_DB_PATH": str(field_db),
-            "AUTH_MODE": "static",
+            # Local mode authenticates like production, with the dev issuer
+            # standing in for Keycloak.
+            "AUTH_MODE": "dev",
             "SERVICE_TOKENS": SERVICE_TOKENS,
+            "OIDC_ISSUER": ISSUER,
+            "OIDC_JWKS_URL": f"{ISSUER}/protocol/openid-connect/certs",
+            "OIDC_TOKEN_URL": f"{ISSUER}/protocol/openid-connect/token",
+            "OIDC_SECRET_SVC_HUB": "t-secret-hub",
+            "OIDC_SECRET_SVC_FIELD_APP": "t-secret-field",
+            "OIDC_SECRET_SVC_REGISTRY": "t-secret-registry",
+            "DEV_ISSUER_PORT": str(ISSUER_PORT),
+            "DEV_ISSUER_KEY": str(tmp / "dev_issuer.pem"),
             "RETRY_BASE_S": "0.2",
             "RETRY_CAP_S": "2",
             "LOG_FORMAT": "json",
@@ -116,6 +127,7 @@ def local_stack(tmp: Path, messaging: bool = False) -> Iterator[Stack]:
         for name, port in zip(("hub-1", "hub-2"), HUB_PORTS):
             nodes[name].port = port
             nodes[name].env = {"HUB_INSTANCE": name, "HUB_PORT": str(port)}
+        nodes["dev-issuer"].port = ISSUER_PORT
         nodes["gateway"].port = GATEWAY_PORT
         nodes["gateway"].env = {}
         if not messaging:

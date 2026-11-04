@@ -53,5 +53,8 @@ def create_app() -> FastAPI:
 
 def main() -> None:
     import uvicorn
+    from dotenv import load_dotenv
+
+    load_dotenv(".env")  # same settings source as the services; the environment wins
 
     uvicorn.run(create_app(), host="127.0.0.1", port=int(os.environ.get("DEV_ISSUER_PORT", "8006")), log_config=None)

@@ -2,6 +2,10 @@
 # Commands are console scripts of the uv environment (.venv/bin). Settings
 # come from .env; values here override them per node.
 nodes:
+  dev-issuer:
+    command: [vigiles-dev-issuer]
+    port: 8006
+    health: /health/live
   mosquitto:
     command: [python, scripts/run_mosquitto.py]
     port: 1883
