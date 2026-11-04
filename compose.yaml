@@ -1,0 +1,218 @@
+# Full stack for the demo.
+#   python scripts/gen_secrets.py        (.env and infra/keycloak/realm.json)
+#   docker compose up -d --build --wait
+name: vigiles
+
+x-db-passwords: &db-passwords
+  REGISTRY_DB_PASSWORD: ${REGISTRY_DB_PASSWORD:?set it in .env}
+  IMPORTER_DB_PASSWORD: ${IMPORTER_DB_PASSWORD:?set it in .env}
+  HUB_DB_PASSWORD: ${HUB_DB_PASSWORD:?set it in .env}
+
+x-service-env: &service-env
+  AUTH_MODE: oidc
+  SERVICE_TOKENS: ${SERVICE_TOKENS:?set it in .env}
+  SESSION_SECRET: ${SESSION_SECRET:?set it in .env}
+  # Tokens carry the issuer as the browser sees Keycloak; services fetch
+  # keys and tokens over the internal network (PLAN.md pitfall 10).
+  OIDC_ISSUER: http://localhost:8080/realms/vigiles
+  OIDC_PUBLIC_URL: http://localhost:8080/realms/vigiles
+  OIDC_JWKS_URL: http://keycloak:8080/realms/vigiles/protocol/openid-connect/certs
+  OIDC_TOKEN_URL: http://keycloak:8080/realms/vigiles/protocol/openid-connect/token
+  OIDC_SECRET_SVC_HUB: ${OIDC_SECRET_SVC_HUB:?run scripts/gen_secrets.py}
+  OIDC_SECRET_SVC_FIELD_APP: ${OIDC_SECRET_SVC_FIELD_APP:?run scripts/gen_secrets.py}
+  OIDC_SECRET_SVC_REGISTRY: ${OIDC_SECRET_SVC_REGISTRY:?run scripts/gen_secrets.py}
+  OIDC_UI_SECRET_REGISTRY: ${OIDC_UI_SECRET_REGISTRY:?run scripts/gen_secrets.py}
+  OIDC_UI_SECRET_FIELD_APP: ${OIDC_UI_SECRET_FIELD_APP:?run scripts/gen_secrets.py}
+  OIDC_UI_SECRET_HUB: ${OIDC_UI_SECRET_HUB:?run scripts/gen_secrets.py}
+  REGISTRY_URL: http://registry:8001
+  FIELD_APP_URL: http://field-app:8002
+  LOG_FORMAT: json
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
+      <<: *db-passwords
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init.sh:/docker-entrypoint-initdb.d/10-vigiles.sh:ro
+      - ./infra/postgres/init.sql:/vigiles/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      # TCP check: during initialisation the server listens only on the socket.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d registry"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run scripts/gen_secrets.py}
+      # Fixed public hostname: iss is always http://localhost:8080/...,
+      # also for tokens requested by services through keycloak:8080.
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./infra/keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      # The image has no curl: plain bash /dev/tcp against the management
+      # port 9000, which is separate from 8080 (PLAN.md pitfall 12).
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  registry:
+    build:
+      context: .
+      dockerfile: services/registry/Dockerfile
+    environment:
+      <<: *service-env
+      REGISTRY_DATABASE_URL: postgresql://registry_app:${REGISTRY_DB_PASSWORD}@postgres:5432/registry
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/ready', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    restart: unless-stopped
+
+  field-app:
+    build:
+      context: .
+      dockerfile: services/field_app/Dockerfile
+    environment:
+      <<: *service-env
+    volumes:
+      - field-app-data:/var/lib/vigiles
+    ports:
+      - "8002:8002"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health/ready', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      registry:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0.18
+    entrypoint: ["/bin/sh", "/vigiles/entrypoint.sh"]
+    environment:
+      MQTT_GW01_PASSWORD: ${MQTT_GW01_PASSWORD:?set it in .env}
+      MQTT_HUB_PASSWORD: ${MQTT_HUB_PASSWORD:?set it in .env}
+      MQTT_EXPLORER_PASSWORD: ${MQTT_EXPLORER_PASSWORD:?set it in .env}
+    volumes:
+      - ./infra/mosquitto:/vigiles:ro
+      - mosquitto-data:/mosquitto/data
+    ports:
+      - "1883:1883"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 1883 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  hub-1: &hub
+    build:
+      context: .
+      dockerfile: services/hub/Dockerfile
+    environment: &hub-env
+      <<: *service-env
+      HUB_INSTANCE: hub-1
+      HUB_PORT: "8003"
+      HUB_DATABASE_URL: postgresql://hub_app:${HUB_DB_PASSWORD}@postgres:5432/hub
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_HUB_PASSWORD: ${MQTT_HUB_PASSWORD}
+    ports:
+      - "8003:8003"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health/ready' % os.environ['HUB_PORT'], timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+    restart: unless-stopped
+
+  hub-2:
+    <<: *hub
+    environment:
+      <<: *hub-env
+      HUB_INSTANCE: hub-2
+      HUB_PORT: "8004"
+    ports:
+      - "8004:8004"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_GW01_PASSWORD: ${MQTT_GW01_PASSWORD}
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY:?set it in .env}
+      LOG_FORMAT: json
+    volumes:
+      - ./data/samples/site-config.json:/vigiles/site-config.json:ro
+      - gateway-data:/var/lib/vigiles
+    ports:
+      - "127.0.0.1:8005:8005"  # scenario API on localhost only
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8005/health/live', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    restart: unless-stopped
+
+  importer:
+    build:
+      context: .
+      dockerfile: tools/importer/Dockerfile
+    command: ["vigiles-import", "watch"]
+    environment:
+      IMPORTER_DATABASE_URL: postgresql://importer:${IMPORTER_DB_PASSWORD}@postgres:5432/registry
+      IMPORTER_DATA_DIR: /data
+      IMPORTER_POLL_INTERVAL_S: "10"
+    volumes:
+      - ./data:/data
+    depends_on:
+      registry:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  field-app-data:
+  mosquitto-data:
+  gateway-data:

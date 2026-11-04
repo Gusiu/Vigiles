@@ -1,0 +1,142 @@
+asyncapi: 3.0.0
+info:
+  title: Vigiles MQTT channels
+  version: 5.0.0
+  description: |
+    Device messages from the IoT gateway and canonical events of the
+    integration hub (PLAN.md 6.4). Broker: Mosquitto 2, MQTT 5, QoS 1
+    everywhere except the console preview. Access per user is enforced by
+    the broker ACL (infra/mosquitto/acl).
+servers:
+  local:
+    host: localhost:1883
+    protocol: mqtt
+    protocolVersion: "5"
+    security:
+      - $ref: "#/components/securitySchemes/userPassword"
+channels:
+  raw:
+    address: vigiles/raw/{vendor}/{gateway}/{device}
+    description: Raw vendor message. Published by the gateway, consumed by the hub ingress as $share/ingress.
+    parameters:
+      vendor: {enum: [alfa, beta]}
+      gateway: {description: Gateway id, e.g. gw-01}
+      device: {description: Device id, e.g. A-000123 or BETA-7F3K2}
+    messages:
+      alfa: {$ref: "#/components/messages/alfa"}
+      beta: {$ref: "#/components/messages/beta"}
+  status:
+    address: vigiles/status/{gateway}
+    description: Retained gateway status; the Last Will publishes "offline" when the gateway disappears.
+    parameters:
+      gateway: {description: Gateway id}
+    messages:
+      status: {$ref: "#/components/messages/status"}
+  alarm:
+    address: vigiles/events/alarm/{site}/{zone}
+    description: Canonical alarms (Content-Based Router). Consumer $share/aggregator.
+    parameters: {site: {}, zone: {}}
+    messages:
+      envelope: {$ref: "#/components/messages/envelope"}
+  fault:
+    address: vigiles/events/fault/{site}/{zone}
+    description: Canonical faults, including GATEWAY_OFFLINE from the Last Will. Consumer $share/faults.
+    parameters: {site: {}, zone: {}}
+    messages:
+      envelope: {$ref: "#/components/messages/envelope"}
+  telemetry:
+    address: vigiles/events/telemetry/{site}/{zone}
+    description: Canonical telemetry. Consumer $share/telemetry with a Message Filter.
+    parameters: {site: {}, zone: {}}
+    messages:
+      envelope: {$ref: "#/components/messages/envelope"}
+  dlq:
+    address: vigiles/dlq/{reason}
+    description: Preview of dead letters; the table dead_letters is the source of truth.
+    parameters:
+      reason: {enum: [invalid_payload, invalid_topic, unknown_vendor, unknown_device, unknown_type, invalid_envelope]}
+    messages:
+      deadLetter:
+        payload:
+          type: object
+          properties:
+            dead_letter_id: {type: integer}
+            source_topic: {type: string}
+            error: {type: string}
+operations:
+  sendRaw: {action: send, channel: {$ref: "#/channels/raw"}, summary: Gateway (user gw-01) publishes device messages, QoS 1}
+  sendStatus: {action: send, channel: {$ref: "#/channels/status"}, summary: Gateway status, retained, QoS 1}
+  receiveRaw: {action: receive, channel: {$ref: "#/channels/raw"}, summary: Hub ingress normalises, enriches and routes}
+  receiveStatus: {action: receive, channel: {$ref: "#/channels/status"}}
+  sendAlarm: {action: send, channel: {$ref: "#/channels/alarm"}}
+  sendFault: {action: send, channel: {$ref: "#/channels/fault"}}
+  sendTelemetry: {action: send, channel: {$ref: "#/channels/telemetry"}}
+  receiveAlarm: {action: receive, channel: {$ref: "#/channels/alarm"}, summary: Aggregator - coincidence of two detectors}
+  receiveFault: {action: receive, channel: {$ref: "#/channels/fault"}, summary: Work orders in the registry}
+  receiveTelemetry: {action: receive, channel: {$ref: "#/channels/telemetry"}, summary: Cleaning orders above the threshold}
+  sendDeadLetter: {action: send, channel: {$ref: "#/channels/dlq"}}
+components:
+  securitySchemes:
+    userPassword:
+      type: userPassword
+      description: Broker users gw-01, hub, explorer; passwords from .env, anonymous access disabled.
+  messages:
+    alfa:
+      name: Alfa
+      summary: Flat JSON, epoch milliseconds, zone and message id included
+      payload:
+        type: object
+        required: [id, dev, evt, ts]
+        properties:
+          id: {type: integer}
+          dev: {type: string}
+          evt: {enum: [ALARM, TLM, FAULT]}
+          ts: {type: integer, description: Milliseconds since epoch}
+          zone: {type: string}
+          contamination: {type: number}
+          code: {type: string}
+      examples:
+        - payload: {id: 88121, dev: A-000123, evt: ALARM, ts: 1793787300123, zone: Z3}
+    beta:
+      name: Beta
+      summary: Nested JSON, ISO 8601 with offset, decimal comma, no zone and no message id
+      payload:
+        type: object
+        required: [serial, time, event]
+        properties:
+          serial: {type: string}
+          time: {type: string, format: date-time}
+          event:
+            type: object
+            properties:
+              type: {enum: [fault, alarm, telemetry]}
+              code: {type: string}
+              measured: {type: string, description: Decimal comma, e.g. "95,2"}
+              unit: {type: string}
+      examples:
+        - payload: {serial: BETA-7F3K2, time: "2026-11-04T11:15:00+01:00", event: {type: fault, code: DAMPER_SLOW_CLOSE, measured: "95,2", unit: s}}
+    status:
+      payload:
+        type: object
+        properties:
+          status: {enum: [online, offline]}
+          session: {type: string, description: Start time of the gateway process; identifies one connection lifetime}
+    envelope:
+      name: Canonical envelope
+      summary: Canonical Data Model (libs/common/src/vigiles_common/envelope.py)
+      payload:
+        type: object
+        required: [schema_version, message_id, correlation_id, type, site, zone, device_id, vendor, occurred_at, normalized_at, payload]
+        properties:
+          schema_version: {const: 1}
+          message_id: {type: string, format: uuid, description: Deterministic UUIDv5 of the vendor identity of the event}
+          correlation_id: {type: string}
+          type: {enum: [alarm, fault, telemetry]}
+          site: {type: string}
+          zone: {type: string}
+          device_id: {type: string}
+          asset_code: {type: [string, "null"]}
+          vendor: {type: string}
+          occurred_at: {type: string, format: date-time}
+          normalized_at: {type: string, format: date-time}
+          payload: {type: object}

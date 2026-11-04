@@ -1,0 +1,12 @@
+Nr elementu;Typ;Budynek;Kondygnacja;Pomieszczenie;Przegroda;Instalacja;Œrednica [mm];System uszczelnienia;Klasa EI;Data monta¿u;Brygada;Uwagi
+PI-B1-2-014;przejœcie instalacyjne;B1;2;2.14;œciana;rura PVC;110;ko³nierz ogniochronny;EI 60;14.03.2025;B-2;
+PI-B1-2-015;przejœcie instalacyjne;B1;2;2.14;œciana;rura stalowa;50;masa ogniochronna;EI 60;14.03.2025;B-2;
+PI-B1-2-016;przejœcie instalacyjne;B1;2;korytarz;strop;kable elektryczne;;masa ogniochronna;EI 120;17.03.2025;B-2;wi¹zka kabli w korycie
+PI-B1-3-001;przejœcie instalacyjne;B1;3;3.02;œciana;rura PP;160;opaska ogniochronna;EI 90;21.03.2025;B-1;
+DP-B1-3-001;drzwi ppo¿.;B1;3;klatka schodowa A;œciana;;;;EI 30;02.04.2025;B-3;samozamykacz
+DP-B1-3-002;drzwi ppo¿.;B1;3;klatka schodowa B;œciana;;;;EI 30;02.04.2025;B-3;
+KL-B1-3-001;klapa ppo¿.;B1;3;szacht W1;strop;wentylacja;315;;EI 120;10.04.2025;B-1;
+KL-B1-3-002;klapa ppo¿.;B1;3;szacht W2;strop;wentylacja;400;;EI 120;10.04.2025;B-1;sterownik Beta
+CZ-B1-3-001;czujka dymu;B1;3;3.01;;;;;;15.04.2025;B-4;
+CZ-B1-3-002;czujka dymu;B1;3;3.02;;;;;;15.04.2025;B-4;
+CZ-B1-3-003;czujka dymu;B1;3;korytarz;;;;;;15.04.2025;B-4;
