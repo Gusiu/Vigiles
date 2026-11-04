@@ -31,7 +31,8 @@ def test_static_verifier() -> None:
 
 def test_role_mapping() -> None:
     assert permissions_for(["technik"]) == {"tasks:read", "inspections:write"}
-    assert {"dlq:replay", "conflicts:resolve", "tasks:read"} <= permissions_for(["admin"])
+    assert {"dlq:replay", "conflicts:resolve", "tasks:read", "assets:write"} <= permissions_for(["admin"])
+    assert "assets:write" in permissions_for(["kierownik"])
     assert permissions_for(["unknown"]) == frozenset()
 
 
