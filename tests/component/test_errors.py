@@ -53,6 +53,8 @@ def test_incident_is_idempotent(registry: TestClient) -> None:
     again = registry.post("/api/v1/incidents", json=body, headers={**HUB, "Idempotency-Key": "w1:confirmed"})
 
     assert first.status_code == 201 and first.json() == again.json()
+    # The correlation ID is stored even when the caller did not send one.
+    assert first.json()["correlation_id"] == first.headers["x-correlation-id"]
 
 
 def test_database_down_is_503_with_retry_after(empty_db: Database) -> None:
