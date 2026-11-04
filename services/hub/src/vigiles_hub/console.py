@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 
 from vigiles_common.auth import Principal, require
 from vigiles_common.problems import ProblemError
-from vigiles_common.web import install_web, templates_for, ui_user
+from vigiles_common.web import install_web, oidc_login_for, templates_for, ui_user
 
 router = APIRouter(prefix="/api/v1")
 
@@ -93,7 +93,8 @@ def outbox(request: Request, status: Literal["pending", "sent", "dead"] | None =
 def install_console(app: FastAPI, settings) -> None:
     templates = templates_for(Path(__file__).parent / "templates")
     install_web(app, templates, f"Hub console ({settings.hub_instance})", settings.session_secret,
-                [("Console", "/ui/console", "console:read")], home="/ui/console")
+                [("Console", "/ui/console", "console:read")], home="/ui/console",
+                oidc=oidc_login_for(settings, "hub-console", "oidc_ui_secret_hub"))
     render = app.state.render
 
     @app.get("/ui/console", response_class=HTMLResponse, include_in_schema=False)

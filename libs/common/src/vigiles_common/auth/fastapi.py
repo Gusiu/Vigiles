@@ -33,10 +33,15 @@ def current_principal(request: Request) -> Principal:
         except AuthError as exc:
             raise _unauthorized(str(exc)) from exc
     else:
-        user = request.scope.get("session", {}).get("user") if "session" in request.scope else None
-        if user not in DEMO_USERS:
+        session = request.scope.get("session", {}) if "session" in request.scope else {}
+        user = session.get("user")
+        if user and "roles" in session:
+            # Signed in through the identity provider: roles come from its token.
+            principal = Principal.of(user, tuple(session["roles"]), "user")
+        elif user in DEMO_USERS and getattr(request.app.state, "demo_login", True):
+            principal = Principal.of(user, DEMO_USERS[user], "user")
+        else:
             raise _unauthorized("authentication required")
-        principal = Principal.of(user, DEMO_USERS[user], "user")
     request.state.principal = principal
     return principal
 

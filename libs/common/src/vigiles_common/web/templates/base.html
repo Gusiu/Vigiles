@@ -17,7 +17,7 @@
   </nav>
   <span class="spacer"></span>
   {% if user %}
-    <span class="badge demo">demo mode</span>
+    {% if demo_login %}<span class="badge demo">demo mode</span>{% endif %}
     <span>{{ user.subject }} ({{ user.roles | join(", ") }})</span>
     <form method="post" action="/logout" class="inline"><button>Log out</button></form>
   {% endif %}

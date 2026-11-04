@@ -29,4 +29,9 @@ class AuthSettings(ServiceSettings):
     oidc_secret_svc_hub: str = ""
     oidc_secret_svc_field_app: str = ""
     oidc_secret_svc_registry: str = ""
+    # UI login (AUTH_MODE=oidc): Authorization Code + PKCE
+    oidc_public_url: str = ""  # browser-facing realm URL, e.g. http://localhost:8080/realms/vigiles
+    oidc_ui_secret_registry: str = ""
+    oidc_ui_secret_field_app: str = ""
+    oidc_ui_secret_hub: str = ""
     session_secret: str = "change-me-session"

@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from vigiles_common.web import install_web, templates_for, ui_user
+from vigiles_common.web import install_web, oidc_login_for, templates_for, ui_user
 from vigiles_field_app import actions
 
 NAV = [("Tasks", "/ui/tasks", "tasks:read"), ("Assets", "/ui/assets", "tasks:read")]
@@ -13,7 +13,8 @@ NAV = [("Tasks", "/ui/tasks", "tasks:read"), ("Assets", "/ui/assets", "tasks:rea
 
 def install_ui(app: FastAPI, settings) -> None:
     templates = templates_for(Path(__file__).parent / "templates")
-    install_web(app, templates, "Field app", settings.session_secret, NAV, home="/ui/tasks")
+    install_web(app, templates, "Field app", settings.session_secret, NAV, home="/ui/tasks",
+                oidc=oidc_login_for(settings, "field-app-ui", "oidc_ui_secret_field_app"))
     render = app.state.render
     db = app.state.db
     engine = app.state.engine
