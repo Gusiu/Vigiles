@@ -108,6 +108,7 @@ def create_app(settings: HubSettings | None = None) -> FastAPI:
         threads: list[threading.Thread] = []
         wiretap = None
         if settings.background_workers:
+            catalog.warm_up()
             for name, topic in SUBSCRIPTIONS.items():
                 consumer = Consumer(mqtt_settings, f"{instance}-{name}", topic, handlers[name])
                 consumer.start()
