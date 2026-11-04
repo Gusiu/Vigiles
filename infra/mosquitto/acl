@@ -1,0 +1,12 @@
+# Topic access per broker user (PLAN.md 11.4).
+user gw-01
+topic write vigiles/raw/+/gw-01/#
+topic write vigiles/status/gw-01
+
+user hub
+topic read vigiles/#
+topic write vigiles/events/#
+topic write vigiles/dlq/#
+
+user explorer
+topic read vigiles/#
