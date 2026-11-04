@@ -8,6 +8,8 @@ that calls other services or writes outbox rows reads it with
 
 import re
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from contextvars import ContextVar
 
 import structlog
@@ -27,6 +29,20 @@ def current_correlation_id() -> str | None:
 
 def new_correlation_id() -> str:
     return str(uuid.uuid4())
+
+
+@contextmanager
+def correlation_scope(correlation_id: str | None = None) -> Iterator[str]:
+    """Set the correlation ID for work outside an HTTP request (workers,
+    CLI): visible to ``current_correlation_id()`` and bound to the logs."""
+    correlation_id = correlation_id or new_correlation_id()
+    token = _current.set(correlation_id)
+    log_tokens = structlog.contextvars.bind_contextvars(correlation_id=correlation_id)
+    try:
+        yield correlation_id
+    finally:
+        structlog.contextvars.reset_contextvars(**log_tokens)
+        _current.reset(token)
 
 
 def accept_or_generate(value: str | None) -> str:
