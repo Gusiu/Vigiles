@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from vigiles_common.auth import Principal, require
+from vigiles_common.correlation import current_correlation_id
 from vigiles_registry import conflicts, work_orders
 from vigiles_registry.db import Database
 from vigiles_registry.events import record_event
@@ -108,7 +109,6 @@ def create_work_order(
 def create_incident(
     body: IncidentIn,
     database: DB,
-    request: Request,
     principal: Principal = Depends(require("incidents:create")),
     idempotency_key: str | None = Header(default=None),
 ) -> JSONResponse:
@@ -121,7 +121,7 @@ def create_incident(
                 VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING *
                 """,
                 (body.kind, body.site, body.zone, body.detectors, body.first_at, body.decided_at,
-                 request.headers.get("x-correlation-id")),
+                 current_correlation_id()),
             ).fetchone()
             record_event(conn, "incident_created", "ok", incident_id=str(incident["id"]), kind=body.kind)
             return 201, incident
