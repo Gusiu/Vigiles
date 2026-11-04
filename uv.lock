@@ -7,6 +7,7 @@ members = [
     "vigiles",
     "vigiles-common",
     "vigiles-field-app",
+    "vigiles-hub",
     "vigiles-importer",
     "vigiles-registry",
 ]
@@ -477,6 +478,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "vigiles-common" },
     { name = "vigiles-field-app" },
+    { name = "vigiles-hub" },
     { name = "vigiles-importer" },
     { name = "vigiles-registry" },
 ]
@@ -493,6 +495,7 @@ dev = [
 requires-dist = [
     { name = "vigiles-common", editable = "libs/common" },
     { name = "vigiles-field-app", editable = "services/field_app" },
+    { name = "vigiles-hub", editable = "services/hub" },
     { name = "vigiles-importer", editable = "tools/importer" },
     { name = "vigiles-registry", editable = "services/registry" },
 ]
@@ -547,6 +550,25 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
+    { name = "uvicorn", specifier = ">=0.32" },
+    { name = "vigiles-common", editable = "libs/common" },
+]
+
+[[package]]
+name = "vigiles-hub"
+version = "0.1.0"
+source = { editable = "services/hub" }
+dependencies = [
+    { name = "httpx" },
+    { name = "psycopg-pool" },
+    { name = "uvicorn" },
+    { name = "vigiles-common" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "psycopg-pool", specifier = ">=3.2" },
     { name = "uvicorn", specifier = ">=0.32" },
     { name = "vigiles-common", editable = "libs/common" },
 ]
