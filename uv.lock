@@ -6,6 +6,7 @@ requires-python = "==3.12.*"
 members = [
     "vigiles",
     "vigiles-common",
+    "vigiles-importer",
     "vigiles-registry",
 ]
 
@@ -348,6 +349,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "vigiles-common" },
+    { name = "vigiles-importer" },
     { name = "vigiles-registry" },
 ]
 
@@ -360,6 +362,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "vigiles-common", editable = "libs/common" },
+    { name = "vigiles-importer", editable = "tools/importer" },
     { name = "vigiles-registry", editable = "services/registry" },
 ]
 
@@ -386,6 +389,21 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },
     { name = "pydantic-settings", specifier = ">=2.16.2" },
     { name = "structlog", specifier = ">=26.1.0" },
+]
+
+[[package]]
+name = "vigiles-importer"
+version = "0.1.0"
+source = { editable = "tools/importer" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "vigiles-common" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.9" },
+    { name = "vigiles-common", editable = "libs/common" },
 ]
 
 [[package]]
