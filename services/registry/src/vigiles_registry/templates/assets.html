@@ -13,7 +13,9 @@
     <td>{{ a.fire_rating or "-" }}</td>
     <td>{{ a.installed_at or "-" }}</td>
     <td><span class="badge {{ a.condition }}">{{ a.condition }}</span></td>
-    <td>{{ a.notes or "" }}</td>
+    <td>{% if user and "assets:write" in user.permissions %}
+      <form method="post" action="/ui/assets/{{ a.id }}/notes" class="inline"><input name="notes" value="{{ a.notes or '' }}" size="24"><button>Save</button></form>
+      {% else %}{{ a.notes or "" }}{% endif %}</td>
     <td>{{ a.rev }}</td>
     <td class="muted">{{ a.origin or "" }}</td>
   </tr>

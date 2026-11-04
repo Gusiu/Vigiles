@@ -37,3 +37,15 @@ def test_technician_is_forbidden(registry: TestClient) -> None:
 
 def test_static_assets_are_served_locally(registry: TestClient) -> None:
     assert registry.get("/static/htmx-2.0.4.min.js").status_code == 200
+
+
+def test_manager_edits_notes_as_office_change(registry: TestClient, seeded_db: Database) -> None:
+    login(registry, "anna.kierownik")
+    with psycopg.connect(seeded_db.owner_url) as conn:
+        asset_id, rev = conn.execute("SELECT id, rev FROM assets WHERE code = 'PI-B1-2-014'").fetchone()
+
+    registry.post(f"/ui/assets/{asset_id}/notes", data={"notes": "do weryfikacji"})
+
+    with psycopg.connect(seeded_db.owner_url) as conn:
+        assert conn.execute("SELECT notes, rev, origin FROM assets WHERE id = %s", (asset_id,)).fetchone() == (
+            "do weryfikacji", rev + 1, "anna.kierownik")

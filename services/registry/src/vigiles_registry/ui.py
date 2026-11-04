@@ -44,6 +44,16 @@ def install_ui(app: FastAPI, settings: RegistrySettings) -> None:
             ).fetchall()
         return render(request, "assets.html", assets=rows)
 
+    @app.post("/ui/assets/{asset_id}/notes", include_in_schema=False)
+    def asset_notes(request: Request, asset_id: str, notes: str = Form("")) -> RedirectResponse:
+        principal = ui_user(request, "assets:write")
+        with db().transaction(origin=principal.subject) as conn:
+            conn.execute(
+                "UPDATE assets SET notes = %s, updated_by = %s WHERE id = %s AND notes IS DISTINCT FROM %s",
+                (notes or None, principal.subject, asset_id, notes or None),
+            )
+        return RedirectResponse("/ui/assets", status_code=303)
+
     @app.get("/ui/work-orders", response_class=HTMLResponse, include_in_schema=False)
     def orders(request: Request, message: str | None = None) -> HTMLResponse:
         ui_user(request, "work-orders:create")

@@ -7,7 +7,7 @@ from typing import Protocol
 _HUMAN = {
     "technik": {"tasks:read", "inspections:write"},
     "kierownik": {
-        "assets:read", "work-orders:create", "work-orders:assign", "conflicts:read",
+        "assets:read", "assets:write", "work-orders:create", "work-orders:assign", "conflicts:read",
         "conflicts:resolve", "incidents:read", "imports:read", "console:read",
     },
     "zarzadca": {"assets:read", "incidents:read"},
