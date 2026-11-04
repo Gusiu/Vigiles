@@ -17,7 +17,8 @@ from harness.nodes import NodeController, supervisor
 from harness.registry import SERVICE_TOKENS
 
 SAMPLES = Path(__file__).resolve().parents[2] / "data" / "samples"
-REGISTRY_PORT, FIELD_APP_PORT = 18001, 18002
+REGISTRY_PORT, FIELD_APP_PORT, HUB_PORTS, GATEWAY_PORT, MQTT_PORT = 18001, 18002, (18003, 18004), 18005, 11883
+GATEWAY_KEY = {"X-Api-Key": "t-gateway"}
 
 
 @dataclass
@@ -28,6 +29,20 @@ class Stack:
     nodes: NodeController
     registry_url: str = f"http://127.0.0.1:{REGISTRY_PORT}"
     field_app_url: str = f"http://127.0.0.1:{FIELD_APP_PORT}"
+    gateway_url: str = f"http://127.0.0.1:{GATEWAY_PORT}"
+    hub_db_url: str = ""
+
+    def hub_sql(self, sql: str, params: tuple = ()) -> list[tuple]:
+        with psycopg.connect(self.hub_db_url) as conn:
+            return conn.execute(sql, params).fetchall()
+
+    def scenario(self, name: str, body: dict | None = None) -> dict:
+        response = httpx.post(f"{self.gateway_url}/scenario/{name}", json=body or {}, headers=GATEWAY_KEY, timeout=10)
+        response.raise_for_status()
+        return response.json()
+
+    def gateway_buffer(self) -> int:
+        return httpx.get(f"{self.gateway_url}/buffer", headers=GATEWAY_KEY, timeout=5).json()["buffered"]
 
     def drop(self, sample: str) -> None:
         shutil.copy(SAMPLES / sample, self.data_dir / "inbox" / f".{sample}.part")
@@ -49,8 +64,13 @@ class Stack:
 
 
 @contextmanager
-def local_stack(tmp: Path, outage_s: float | None = None) -> Iterator[Stack]:
-    with throwaway_database(DatabaseSettings()) as db:
+def local_stack(tmp: Path, messaging: bool = False) -> Iterator[Stack]:
+    from harness.broker import ENV as MQTT_ENV
+    from harness.db import with_database
+
+    settings = DatabaseSettings()
+    with throwaway_database(settings) as db, throwaway_database(settings, owner="hub_app") as hub_db:
+        hub_url = with_database(settings.hub_database_url, hub_db.name)
         data_dir = tmp / "data"
         for sub in ("inbox", "archive", "error"):
             (data_dir / sub).mkdir(parents=True)
@@ -71,15 +91,41 @@ def local_stack(tmp: Path, outage_s: float | None = None) -> Iterator[Stack]:
             "RETRY_BASE_S": "0.2",
             "RETRY_CAP_S": "2",
             "LOG_FORMAT": "json",
+            # messaging
+            **MQTT_ENV,
+            "MQTT_HOST": "127.0.0.1",
+            "MQTT_PORT": str(MQTT_PORT),
+            "MOSQUITTO_STATE_DIR": str(tmp / "mosquitto"),
+            "HUB_DATABASE_URL": hub_url,
+            "ALARM_WINDOW_S": "5",
+            "ALARM_LATENESS_S": "1",
+            "SWEEPER_INTERVAL_S": "0.5",
+            "OUTBOX_INTERVAL_S": "0.2",
+            "CATALOG_MIN_REFRESH_S": "0",
+            "GATEWAY_OFFLINE_GRACE_S": "20",
+            "GATEWAY_API_KEY": GATEWAY_KEY["X-Api-Key"],
+            "GATEWAY_PORT": str(GATEWAY_PORT),
+            "GATEWAY_BUFFER_PATH": str(tmp / "gateway.sqlite"),
+            "GATEWAY_SITE_CONFIG": str(SAMPLES / "site-config.json"),
         }
         nodes = supervisor.load_nodes()
         nodes["registry"].port = REGISTRY_PORT
         nodes["field-app"].port = FIELD_APP_PORT
         nodes["field-app"].env = {}
+        nodes["mosquitto"].port = MQTT_PORT
+        for name, port in zip(("hub-1", "hub-2"), HUB_PORTS):
+            nodes[name].port = port
+            nodes[name].env = {"HUB_INSTANCE": name, "HUB_PORT": str(port)}
+        nodes["gateway"].port = GATEWAY_PORT
+        nodes["gateway"].env = {}
+        if not messaging:
+            for name in ("mosquitto", "hub-1", "hub-2", "gateway"):
+                del nodes[name]
         local = supervisor.Supervisor(nodes, state_dir=tmp / ".local", env=env)
         try:
             local.up()
-            yield Stack(db=db, data_dir=data_dir, field_db_path=field_db, nodes=NodeController("local", local))
+            yield Stack(db=db, data_dir=data_dir, field_db_path=field_db, nodes=NodeController("local", local),
+                        hub_db_url=hub_url)
         finally:
             local.down()
             for log in sorted((tmp / ".local" / "logs").glob("*.log")):
