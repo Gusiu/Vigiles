@@ -100,8 +100,9 @@ def create_app(settings: HubSettings | None = None) -> FastAPI:
         def record(row, delivery):
             original(row, delivery)
             if delivery.status == "sent":
-                events.record(None, "outbox", "registry_call_sent", "ok", str(row["message_id"]),
-                              row.get("correlation_id"), kind=row["kind"])
+                with db.transaction() as conn:
+                    events.record(conn, "outbox", "registry_call_sent", "ok", str(row["message_id"]),
+                                  row.get("correlation_id"), kind=row["kind"])
         return record
 
     relay.record = on_sent(relay.record)
