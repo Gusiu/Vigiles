@@ -33,11 +33,32 @@ class NodeController:
     def _compose(self, *args: str) -> None:
         subprocess.run(["docker", "compose", *args], cwd=ROOT, check=True)
 
+    def _cluster(self, action: str) -> None:
+        # Local mode: PostgreSQL is the system cluster installed by local_up.py.
+        subprocess.run(["pg_ctlcluster", "16", "main", action], check=True)
+        if action == "start":
+            subprocess.run(["pg_isready", "-h", "127.0.0.1", "-t", "30"], check=True, capture_output=True)
+
     def stop(self, node: str) -> None:
-        self._compose("stop", node) if self.backend == "compose" else self.local.stop(node)
+        if self.backend == "compose":
+            self._compose("stop", node)
+        elif node == "postgres":
+            self._cluster("stop")
+        else:
+            self.local.stop(node)
 
     def kill(self, node: str) -> None:
-        self._compose("kill", node) if self.backend == "compose" else self.local.kill(node)
+        if self.backend == "compose":
+            self._compose("kill", node)
+        elif node == "postgres":
+            self._cluster("stop")
+        else:
+            self.local.kill(node)
 
     def start(self, node: str) -> None:
-        self._compose("start", node) if self.backend == "compose" else self.local.start(node)
+        if self.backend == "compose":
+            self._compose("start", node)
+        elif node == "postgres":
+            self._cluster("start")
+        else:
+            self.local.start(node)
