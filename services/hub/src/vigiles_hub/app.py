@@ -77,7 +77,8 @@ def create_app(settings: HubSettings | None = None) -> FastAPI:
     handlers = {
         "ingress": ingress.handle,
         "aggregator": aggregator.handle,
-        "faults": FaultsConsumer(db, events, settings.registry_url, thresholds, instance).handle,
+        "faults": (faults := FaultsConsumer(db, events, settings.registry_url, thresholds, instance,
+                                            settings.gateway_offline_grace_s)).handle,
         "telemetry": TelemetryConsumer(db, events, settings.registry_url, thresholds, instance).handle,
     }
     stop = threading.Event()
@@ -147,6 +148,7 @@ def create_app(settings: HubSettings | None = None) -> FastAPI:
     app.state.aggregator = aggregator
     app.state.relay = relay
     app.state.consumers = []
+    app.state.faults = faults
     app.state.verifier = build_verifier(settings.auth_mode, settings.service_tokens)
     app.add_middleware(CorrelationIdMiddleware)
     install_problem_handlers(app)

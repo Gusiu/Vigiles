@@ -82,7 +82,17 @@ class Ingress:
         except (UnicodeDecodeError, json.JSONDecodeError):
             self._dead(f"vigiles/status/{gateway_id}", raw, "invalid_payload", "status must be JSON")
         if status.get("status") != "offline":
-            self.events.record(None, "ingress", "gateway_status", "ok", gateway=gateway_id, status=status.get("status"))
+            cancelled = 0
+            if status.get("status") == "online":
+                from vigiles_hub.consumers.base import connectivity_tag
+
+                with self.db.transaction() as conn:
+                    cancelled = conn.execute(
+                        "DELETE FROM outbox WHERE kind = %s AND status = 'pending' AND attempts = 0",
+                        (connectivity_tag(gateway_id, status.get("session", "")),),
+                    ).rowcount
+            self.events.record(None, "ingress", "gateway_status", "ok", gateway=gateway_id, status=status.get("status"),
+                               cancelled_connectivity_orders=cancelled)
             return []
         # Last Will: the gateway lost its connection. Each of its devices is
         # now unsupervised; the deterministic id per gateway session keeps a
@@ -96,7 +106,7 @@ class Ingress:
                     message_id=message_id, correlation_id=message_id, type="fault", site=device["site"],
                     zone=device["zone"], device_id=device["device_id"], asset_code=device.get("asset_code"),
                     vendor=device["vendor"], occurred_at=datetime.now(UTC),
-                    payload={"code": "GATEWAY_OFFLINE", "gateway": gateway_id},
+                    payload={"code": "GATEWAY_OFFLINE", "gateway": gateway_id, "session": session},
                 )
                 results.append(self._publish(f"vigiles/status/{gateway_id}", raw, envelope))
         return results

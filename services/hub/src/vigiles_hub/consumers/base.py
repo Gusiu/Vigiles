@@ -36,11 +36,15 @@ def claim(conn: psycopg.Connection, consumer: str, message_id: str, instance: st
 
 
 def enqueue_call(conn: psycopg.Connection, *, kind: str, url: str, payload: dict[str, Any], key: str,
-                 correlation_id: str | None) -> None:
+                 correlation_id: str | None, delay_s: float = 0, tag: str | None = None) -> None:
     """Outbox row for a registry call; key is stable, so the same decision
     never produces two rows and is the Idempotency-Key at the registry."""
     conn.execute(
-        "INSERT INTO outbox (message_id, kind, target_url, payload, correlation_id) VALUES (%s, %s, %s, %s, %s) "
-        "ON CONFLICT (message_id) DO NOTHING",
-        (str(uuid.uuid5(NAMESPACE, f"{kind}|{key}")), kind, url, Jsonb(payload), correlation_id),
+        "INSERT INTO outbox (message_id, kind, target_url, payload, correlation_id, next_attempt_at) "
+        "VALUES (%s, %s, %s, %s, %s, now() + make_interval(secs => %s)) ON CONFLICT (message_id) DO NOTHING",
+        (str(uuid.uuid5(NAMESPACE, f"{kind}|{key}")), tag or kind, url, Jsonb(payload), correlation_id, delay_s),
     )
+
+
+def connectivity_tag(gateway: str, session: str) -> str:
+    return f"connectivity|{gateway}|{session}"
