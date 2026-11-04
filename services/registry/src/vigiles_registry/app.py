@@ -24,6 +24,10 @@ def create_app(settings: RegistrySettings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         database.open()
         workers: list[threading.Thread] = []
+        if settings.background_workers:
+            from vigiles_registry.workers import start_workers
+
+            workers = start_workers(settings, database, stop)
         yield
         stop.set()
         for worker in workers:
