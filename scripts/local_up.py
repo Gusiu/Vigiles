@@ -1,8 +1,8 @@
 """Prepare local infrastructure without Docker (cloud sessions, CI-less runs).
 
 Idempotent: installs PostgreSQL 16 and Mosquitto 2 from apt when missing,
-starts them, sets the superuser password and applies
-``infra/postgres/init.sql``. Run as root or with sudo available:
+starts PostgreSQL, sets the superuser password and applies
+``infra/postgres/init.sql``. Mosquitto is started by the supervisor. Run as root or with sudo available:
 
     python scripts/local_up.py
 """
@@ -97,20 +97,13 @@ def ensure_postgres(env: dict[str, str]) -> None:
     )
 
 
-def ensure_mosquitto() -> None:
-    # Default Mosquitto 2 configuration: localhost only. The project
-    # configuration (persistence, passwords, ACL) arrives with messaging.
-    if not port_open(1883):
-        run(sudo(["mosquitto", "-d"]))
-        wait_for_port(1883, "Mosquitto")
-
-
 def main() -> None:
     env = load_env()
     ensure_packages()
     ensure_postgres(env)
-    ensure_mosquitto()
-    print("local infrastructure ready: PostgreSQL on 5432, Mosquitto on 1883")
+    # Mosquitto runs with the project configuration (passwords, ACL,
+    # persistence) as the supervisor node "mosquitto", not as a daemon here.
+    print("local infrastructure ready: PostgreSQL on 5432; start the rest with scripts/supervisor.py up")
 
 
 if __name__ == "__main__":

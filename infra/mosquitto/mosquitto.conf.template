@@ -1,0 +1,28 @@
+# Mosquitto 2 configuration for Vigiles. Rendered by entrypoint.sh (Docker)
+# or scripts/run_mosquitto.py (local mode); @DATA@ and @CONFIG@ are paths.
+per_listener_settings false
+listener 1883
+
+allow_anonymous false
+password_file @CONFIG@/passwords
+acl_file @CONFIG@/acl
+
+# Persistence: durable sessions and queued QoS 1 messages survive a restart.
+persistence true
+persistence_location @DATA@/
+# Write the in-memory state every second, not only at shutdown, to narrow
+# the window of loss when the broker is killed hard (see docs/resilience.md).
+autosave_interval 1
+autosave_on_changes false
+
+# Durable sessions of hub consumers are kept for a day while disconnected.
+persistent_client_expiration 1d
+max_queued_messages 100000
+max_inflight_messages 20
+
+log_dest stdout
+log_type error
+log_type warning
+log_type notice
+log_type information
+connection_messages true

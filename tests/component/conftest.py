@@ -70,3 +70,11 @@ def field_app(registry, tmp_path):
     )
     with TestClient(create_app(settings, registry_http=registry)) as client:
         yield client
+
+
+@pytest.fixture(scope="session")
+def broker(tmp_path_factory):
+    from harness.broker import mosquitto
+
+    with mosquitto(tmp_path_factory.mktemp("mosquitto") / "state") as running:
+        yield running

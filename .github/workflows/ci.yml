@@ -34,6 +34,8 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
+      - name: Install Mosquitto
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends mosquitto
       - name: Create .env and database roles
         run: |
           sed 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-postgres/' .env.example > .env

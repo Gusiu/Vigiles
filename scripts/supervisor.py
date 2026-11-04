@@ -42,6 +42,8 @@ def load_nodes(path: Path = ROOT / "local-nodes.yaml") -> dict[str, Node]:
 
 
 def _executable(command: list[str]) -> list[str]:
+    if command[0] == "python":
+        return [sys.executable, *command[1:]]
     candidate = BIN / command[0]
     return [str(candidate), *command[1:]] if candidate.exists() else command
 
