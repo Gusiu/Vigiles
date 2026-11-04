@@ -54,3 +54,31 @@ def test_contamination_filter() -> None:
     thresholds = Thresholds()
     assert needs_cleaning(_env("telemetry", contamination=80), thresholds)
     assert not needs_cleaning(_env("telemetry", contamination=79.9), thresholds)
+
+
+def test_catalog_unavailable_is_transient_and_stale_cache_is_used() -> None:
+    import pytest
+
+    from vigiles_hub.ingress.enricher import CatalogUnavailable, DeviceCatalog
+
+    calls = {"n": 0, "up": False}
+    now = [0.0]
+
+    def fetch() -> list[dict]:
+        calls["n"] += 1
+        if not calls["up"]:
+            raise OSError("connection refused")
+        return [{"device_id": "A-1", "zone": "Z3"}]
+
+    catalog = DeviceCatalog(fetch, ttl_s=60, min_refresh_s=0, clock=lambda: now[0])
+    with pytest.raises(CatalogUnavailable):
+        catalog.get("A-1")
+    calls["up"] = True
+    assert catalog.get("A-1") == {"device_id": "A-1", "zone": "Z3"}
+    calls["up"] = False
+    now[0] = 1000.0  # stale, registry down again: the old catalogue still answers
+    assert catalog.get("A-1") == {"device_id": "A-1", "zone": "Z3"}
+    with pytest.raises(CatalogUnavailable):
+        catalog.get("A-2")  # not cached and the registry cannot confirm: retry later
+    calls["up"] = True
+    assert catalog.get("A-2") is None  # confirmed unknown -> dead letter
