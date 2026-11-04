@@ -1,0 +1,322 @@
+{
+  "realm": "vigiles",
+  "enabled": true,
+  "displayName": "Vigiles",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "loginWithEmailAllowed": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "technik",
+        "description": "Technician: tasks and inspections"
+      },
+      {
+        "name": "kierownik",
+        "description": "Manager: work orders, conflicts, imports, console"
+      },
+      {
+        "name": "zarzadca",
+        "description": "Building manager: read only"
+      },
+      {
+        "name": "admin",
+        "description": "Administrator, including dead letters"
+      },
+      {
+        "name": "svc-hub",
+        "description": "Service: integration hub"
+      },
+      {
+        "name": "svc-field-app",
+        "description": "Service: field app"
+      },
+      {
+        "name": "svc-registry",
+        "description": "Service: registry"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "registry-ui",
+      "name": "registry-ui",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_UI_SECRET_REGISTRY}",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8001/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8001"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-registry-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "registry-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "field-app-ui",
+      "name": "field-app-ui",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_UI_SECRET_FIELD_APP}",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8002/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8002"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-field-app-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "field-app-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "hub-console",
+      "name": "hub-console",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_UI_SECRET_HUB}",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8003/*",
+        "http://localhost:8004/*"
+      ],
+      "webOrigins": [
+        "http://localhost:8003",
+        "http://localhost:8004"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-hub-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "hub-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "svc-hub",
+      "name": "svc-hub",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_SECRET_SVC_HUB}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "audience-registry-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "registry-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "svc-field-app",
+      "name": "svc-field-app",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_SECRET_SVC_FIELD_APP}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "audience-registry-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "registry-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "svc-registry",
+      "name": "svc-registry",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${OIDC_SECRET_SVC_REGISTRY}",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "audience-field-app-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "field-app-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "jan.technik",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Jan",
+      "lastName": "Technik",
+      "email": "jan.technik@vigiles.example",
+      "realmRoles": [
+        "technik"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEMO_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "anna.kierownik",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Anna",
+      "lastName": "Kierownik",
+      "email": "anna.kierownik@vigiles.example",
+      "realmRoles": [
+        "kierownik"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEMO_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "zarzadca.b1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Zarzadca",
+      "lastName": "B1",
+      "email": "zarzadca.b1@vigiles.example",
+      "realmRoles": [
+        "zarzadca"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEMO_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "Vigiles",
+      "email": "admin@vigiles.example",
+      "realmRoles": [
+        "admin"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEMO_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "service-account-svc-hub",
+      "enabled": true,
+      "serviceAccountClientId": "svc-hub",
+      "realmRoles": [
+        "svc-hub"
+      ]
+    },
+    {
+      "username": "service-account-svc-field-app",
+      "enabled": true,
+      "serviceAccountClientId": "svc-field-app",
+      "realmRoles": [
+        "svc-field-app"
+      ]
+    },
+    {
+      "username": "service-account-svc-registry",
+      "enabled": true,
+      "serviceAccountClientId": "svc-registry",
+      "realmRoles": [
+        "svc-registry"
+      ]
+    }
+  ]
+}

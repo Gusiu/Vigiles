@@ -8,7 +8,7 @@ from fastapi import FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from vigiles_common.problems import ProblemError
-from vigiles_common.web import install_web, templates_for, ui_user
+from vigiles_common.web import install_web, oidc_login_for, templates_for, ui_user
 from vigiles_registry import conflicts, work_orders
 from vigiles_registry.settings import RegistrySettings
 
@@ -25,7 +25,8 @@ REASONS = ["przeglad_okresowy", "usterka_urzadzenia", "czyszczenie", "brak_laczn
 
 def install_ui(app: FastAPI, settings: RegistrySettings) -> None:
     templates = templates_for(Path(__file__).parent / "templates")
-    install_web(app, templates, "Registry", settings.session_secret, NAV, home="/ui/assets")
+    install_web(app, templates, "Registry", settings.session_secret, NAV, home="/ui/assets",
+                oidc=oidc_login_for(settings, "registry-ui", "oidc_ui_secret_registry"))
     render = app.state.render
 
     def db():

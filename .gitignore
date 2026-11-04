@@ -20,3 +20,4 @@ data/error/*
 !data/inbox/.gitkeep
 !data/archive/.gitkeep
 !data/error/.gitkeep
+infra/keycloak/realm.json
