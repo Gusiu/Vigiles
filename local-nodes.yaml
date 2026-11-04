@@ -17,5 +17,29 @@ nodes:
     health: /health/ready
     env:
       FIELD_APP_DB_PATH: .local/field_app.sqlite
+  hub-1:
+    before:
+      - [vigiles-hub-migrate]
+    command: [vigiles-hub]
+    port: 8003
+    health: /health/ready
+    env:
+      HUB_INSTANCE: hub-1
+      HUB_PORT: "8003"
+  hub-2:
+    before:
+      - [vigiles-hub-migrate]
+    command: [vigiles-hub]
+    port: 8004
+    health: /health/ready
+    env:
+      HUB_INSTANCE: hub-2
+      HUB_PORT: "8004"
+  gateway:
+    command: [vigiles-gateway]
+    port: 8005
+    health: /health/live
+    env:
+      GATEWAY_BUFFER_PATH: .local/gateway.sqlite
   importer:
     command: [vigiles-import, watch]

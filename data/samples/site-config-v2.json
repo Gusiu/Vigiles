@@ -1,0 +1,44 @@
+{
+  "site": {
+    "code": "B1",
+    "name": "Budynek biurowy B1",
+    "address": "ul. Przykładowa 1"
+  },
+  "zones": [
+    {
+      "code": "Z3",
+      "name": "Piętro 3, skrzydło A",
+      "floor": 3
+    }
+  ],
+  "devices": [
+    {
+      "device_id": "A-000123",
+      "vendor": "alfa",
+      "asset_code": "CZ-B1-3-001",
+      "zone": "Z3",
+      "gateway": "gw-01"
+    },
+    {
+      "device_id": "A-000124",
+      "vendor": "alfa",
+      "asset_code": "CZ-B1-3-002",
+      "zone": "Z3",
+      "gateway": "gw-01"
+    },
+    {
+      "device_id": "BETA-7F3K2",
+      "vendor": "beta",
+      "asset_code": "KL-B1-3-002",
+      "zone": "Z3",
+      "gateway": "gw-01"
+    },
+    {
+      "device_id": "A-000125",
+      "vendor": "alfa",
+      "asset_code": "CZ-B1-3-003",
+      "zone": "Z3",
+      "gateway": "gw-01"
+    }
+  ]
+}
