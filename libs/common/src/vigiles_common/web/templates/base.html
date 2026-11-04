@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ service_title }}{% endblock %} - Vigiles</title>
+  <link rel="stylesheet" href="/static/vigiles.css">
+  <script src="/static/htmx-2.0.4.min.js"></script>
+</head>
+<body>
+<header>
+  <strong>Vigiles</strong> <span class="muted">{{ service_title }}</span>
+  <nav>
+    {% for label, path, permission in nav %}
+      {% if user and (not permission or permission in user.permissions) %}<a href="{{ path }}">{{ label }}</a>{% endif %}
+    {% endfor %}
+  </nav>
+  <span class="spacer"></span>
+  {% if user %}
+    <span class="badge demo">demo mode</span>
+    <span>{{ user.subject }} ({{ user.roles | join(", ") }})</span>
+    <form method="post" action="/logout" class="inline"><button>Log out</button></form>
+  {% endif %}
+</header>
+<main>
+{% if message %}<p class="flash">{{ message }}</p>{% endif %}
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

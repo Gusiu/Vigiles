@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<h1>Log in</h1>
+<p class="muted">Demo mode: pick a user. With Keycloak (AUTH_MODE=oidc) this page is replaced by the identity provider.</p>
+<form method="post" action="/login">
+  <input type="hidden" name="next" value="{{ next }}">
+  {% for name, roles in users.items() %}
+    <button name="user" value="{{ name }}">{{ name }} <span class="muted">{{ roles | join(", ") }}</span></button>
+  {% endfor %}
+</form>
+{% endblock %}
