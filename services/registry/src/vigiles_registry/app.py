@@ -37,7 +37,7 @@ def create_app(settings: RegistrySettings | None = None) -> FastAPI:
     app = FastAPI(title="Vigiles Registry", version="4.0", lifespan=lifespan)
     app.state.settings = settings
     app.state.db = database
-    app.state.verifier = build_verifier(settings.auth_mode, settings.service_tokens)
+    app.state.verifier = build_verifier(settings, audience="registry-api")
     app.add_middleware(CorrelationIdMiddleware)
     install_problem_handlers(app)
     app.include_router(health_router({"database": database.ping}))

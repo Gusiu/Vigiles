@@ -6,8 +6,7 @@ from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI
 
-from vigiles_common.auth.core import StaticTokenProvider, parse_service_tokens
-from vigiles_common.auth.modes import build_verifier
+from vigiles_common.auth.modes import build_token_provider, build_verifier
 from vigiles_common.correlation import CorrelationIdMiddleware
 from vigiles_common.health import health_router
 from vigiles_common.logging import configure_logging
@@ -20,16 +19,10 @@ from vigiles_field_app.sync.client import RegistryClient
 from vigiles_field_app.sync.engine import SyncEngine
 
 
-def token_provider(settings: FieldAppSettings):
-    if settings.auth_mode == "static":
-        return StaticTokenProvider(parse_service_tokens(settings.service_tokens)["svc-field-app"])
-    raise ValueError(f"AUTH_MODE={settings.auth_mode} is not supported yet")
-
-
 def create_app(settings: FieldAppSettings | None = None, registry_http: httpx.Client | None = None) -> FastAPI:
     settings = settings or FieldAppSettings()
     db = LocalDb(settings.field_app_db_path)
-    client = RegistryClient(settings.registry_url, token_provider(settings), settings.http_timeout_s, http=registry_http)
+    client = RegistryClient(settings.registry_url, build_token_provider(settings, "svc-field-app"), settings.http_timeout_s, http=registry_http)
     engine = SyncEngine(db, client, RetryPolicy(base_s=settings.retry_base_s, cap_s=settings.retry_cap_s))
     stop = threading.Event()
 
@@ -49,7 +42,7 @@ def create_app(settings: FieldAppSettings | None = None, registry_http: httpx.Cl
     app.state.settings = settings
     app.state.db = db
     app.state.engine = engine
-    app.state.verifier = build_verifier(settings.auth_mode, settings.service_tokens)
+    app.state.verifier = build_verifier(settings, audience="field-app-api")
     app.add_middleware(CorrelationIdMiddleware)
     install_problem_handlers(app)
 
