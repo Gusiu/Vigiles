@@ -1,0 +1,18 @@
+# Processes started by scripts/supervisor.py in local mode (without Docker).
+# Commands are console scripts of the uv environment (.venv/bin). Settings
+# come from .env; values here override them per node.
+nodes:
+  registry:
+    before:
+      - [vigiles-registry, migrate]
+    command: [vigiles-registry-api]
+    port: 8001
+    health: /health/ready
+  field-app:
+    command: [vigiles-field-app]
+    port: 8002
+    health: /health/ready
+    env:
+      FIELD_APP_DB_PATH: .local/field_app.sqlite
+  importer:
+    command: [vigiles-import, watch]
