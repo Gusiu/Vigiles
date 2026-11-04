@@ -4,79 +4,68 @@ Monitoring and maintenance platform for the fire protection of a building
 (fire stopping of service penetrations, fire doors and dampers, smoke
 detectors). Coursework for *Systems Integration*: each grade adds an
 integration style from Hohpe and Woolf, *Enterprise Integration Patterns*.
-
 The name comes from the *vigiles*, the fire brigade and night watch of
 ancient Rome established by Augustus in 6 AD.
 
-> Vigiles is a maintenance and supervision layer. It does not replace a
+> Vigiles is a supervision and maintenance layer. It does not replace a
 > certified fire alarm control panel: in a real building alarms are
 > handled by a panel compliant with EN 54-2.
 
-| Grade | Integration style | Status |
+| Grade | Integration style | Tag |
 |---|---|---|
-| 3.0 | File Transfer: CSV/JSON importer -> PostgreSQL | done (`v3.0`) |
-| 4.0 | Remote Procedure Invocation: two-way REST sync between the Registry and the field app | done (`v4.0`) |
-| 5.0 | Messaging: MQTT, integration hub with EIP patterns, Keycloak, resilience | planned |
+| 3.0 | File Transfer: CSV/JSON importer -> PostgreSQL | `v3.0` |
+| 4.0 | Remote Procedure Invocation: two-way REST sync between the registry and the field app | `v4.0` |
+| 5.0 | Messaging: MQTT, integration hub with EIP patterns, Keycloak, resilience | `v5.0` |
 
-The full specification is in [`PLAN.md`](PLAN.md).
+The specification is [`PLAN.md`](PLAN.md).
 
-## What works in 3.0
+## What it does
 
-A contractor drops an asset list (CSV exported from Excel) and a site
-configuration (JSON) into `data/inbox`. The importer validates them,
-loads valid rows into the Registry database in one transaction, writes
-rejected rows with reasons to `data/error`, and archives the file. It runs
-on demand (`vigiles-import run`) or polls the inbox every 10 s
-(`vigiles-import watch`). If the database is down the file stays in the
-inbox and is imported in the next cycle. Details: [`docs/import.md`](docs/import.md).
-
-## What works in 4.0
-
-The Registry (System B, PostgreSQL) and the field app (System A, SQLite)
-synchronise both ways over REST. A manager creates a work order in the
-Registry UI (http://localhost:8001); a webhook makes the field app
-(http://localhost:8002) pull the change feed within seconds; the
-technician records the inspection, which goes back to the Registry and
-closes the order. Concurrent edits are merged field by field with field
-ownership; a concurrent edit of `notes` becomes a conflict a manager
-resolves. The field app keeps working offline and when the Registry is
-down. Services authenticate with bearer tokens. Details:
-[`docs/sync-protocol.md`](docs/sync-protocol.md).
+- **3.0** A contractor drops an asset list (CSV from Excel, cp1250 or
+  UTF-8, `;` or `,`) and a site configuration (JSON) into `data/inbox`.
+  The importer validates every row, loads valid rows in one transaction,
+  reports rejected rows with reasons and leaves files in the inbox while
+  the database is down. [docs/import.md](docs/import.md)
+- **4.0** The registry (System B) and the field app (System A) share no
+  database. A webhook makes the field app pull the change feed; inspection
+  results are pushed back with their base revision and merged per field;
+  concurrent edits of `notes` become conflicts resolved by a manager. The
+  field app works offline. [docs/sync-protocol.md](docs/sync-protocol.md)
+- **5.0** An IoT gateway simulates devices of two vendors and publishes to
+  Mosquitto. Two hub replicas normalise, enrich and route the messages,
+  aggregate alarm coincidence, and create work orders and incidents in the
+  registry through an outbox; invalid messages go to a dead letter channel
+  with replay. Keycloak issues OAuth2 tokens; every service enforces
+  roles. Every failure scenario has a test.
+  [docs/architecture.md](docs/architecture.md),
+  [docs/patterns.md](docs/patterns.md),
+  [docs/resilience.md](docs/resilience.md),
+  [docs/security.md](docs/security.md)
 
 ## Running with Docker (demo)
 
 ```bash
-cp .env.example .env
-```
-
-Change the passwords in `.env`, then:
-
-```bash
-docker compose up -d --build
+python scripts/gen_secrets.py
 ```
 
 ```bash
-cp data/samples/zestawienie_B1.csv data/samples/zestawienie_B1_bledy.csv data/samples/site-config.json data/inbox/
+docker compose up -d --build --wait
 ```
 
 ```bash
-docker compose logs -f importer
+scripts/compose_smoke.sh
 ```
 
-Imported files appear in `data/archive`, the report of rejected rows in
-`data/error/zestawienie_B1_bledy.rejected.csv`. To look at the data:
-
-```bash
-docker compose exec postgres psql -U postgres -d registry -c "select code, asset_type, fire_rating, rev from assets"
-```
-
-Registry UI: http://localhost:8001 (log in as `anna.kierownik`), field
-app: http://localhost:8002 (log in as `jan.technik`).
+Registry http://localhost:8001, field app http://localhost:8002, hub
+consoles http://localhost:8003 and :8004, Keycloak http://localhost:8080.
+Users and scenario commands: [docs/runbook-windows.md](docs/runbook-windows.md).
+Video script: [docs/video-script.md](docs/video-script.md).
 
 ## Running without Docker
 
-For environments where container images cannot be downloaded. Requires
-Ubuntu 24.04 with apt, Python 3.12 and [uv](https://docs.astral.sh/uv/).
+For environments where container images cannot be downloaded (Ubuntu
+24.04 with apt, Python 3.12, [uv](https://docs.astral.sh/uv/)).
+Authentication uses `tools/dev_issuer` instead of Keycloak.
 
 ```bash
 python3 scripts/local_up.py
@@ -87,24 +76,18 @@ uv sync
 ```
 
 ```bash
-uv run vigiles-registry migrate
-```
-
-```bash
 uv run python scripts/supervisor.py up
 ```
 
 ```bash
-cp data/samples/zestawienie_B1.csv data/inbox/
+cp data/samples/zestawienie_B1.csv data/samples/site-config.json data/inbox/
 ```
 
-`supervisor.py` runs the registry (8001), the field app (8002) and the
-importer as local processes (`status`, `stop <node>`, `start <node>`,
-`kill <node>`, `down`); logs are in `.local/logs/`.
-
 `local_up.py` installs PostgreSQL 16 and Mosquitto 2 when missing, starts
-them, creates `.env` from `.env.example` if needed and applies
-`infra/postgres/init.sql`. It is safe to run repeatedly.
+PostgreSQL and applies `infra/postgres/init.sql`. `supervisor.py` runs the
+dev issuer, broker, registry, field app, both hub replicas, gateway and
+importer from `local-nodes.yaml` (`status`, `stop <node>`, `start <node>`,
+`kill <node>`, `down`); logs in `.local/logs/`.
 
 ## Tests
 
@@ -120,23 +103,31 @@ uv run pytest -m component
 uv run pytest -m "e2e or chaos"
 ```
 
-Component tests need PostgreSQL with the project roles (`local_up.py`);
-each test gets a throwaway database. E2e and chaos tests start the
-registry, the field app and the importer as real processes on ports
-18001/18002 and stop or kill them through `NodeController`. CI
-(`.github/workflows/ci.yml`) runs all levels and a compose smoke test.
+| Level | Scope | Needs |
+|---|---|---|
+| unit | CSV parsing, translators, router, aggregator rules, merge, retry, JWT validation | nothing |
+| component | schema and triggers, import, push/pull, conflicts, idempotency, outbox with failing HTTP, hub with a real broker, gateway buffer, broker ACL, RBAC matrix, OIDC login | PostgreSQL 16, Mosquitto 2 |
+| e2e | scenarios S1-S7 | the local stack, started by the tests |
+| chaos | failures C1-C7 | the local stack + `NodeController` |
+
+CI (`.github/workflows/ci.yml`) runs all levels and a compose smoke test
+with Keycloak.
 
 ## Repository layout
 
 ```
-libs/common/       settings, JSON logging, correlation ID, problem+json, health, retry,
-                   migrations, auth, outbox relay, shared UI
-services/registry/ System B: API, sync, conflicts, UI, migrations
+libs/common/        settings, JSON logging, correlation ID, problem+json, health, retry,
+                    migrations, auth (static, JWT), outbox relay, MQTT, envelope, shared UI
+services/registry/  System B: API, sync, conflicts, notifier, UI, migrations
 services/field_app/ System A: SQLite, translator, sync engine, UI
-tools/importer/    file transfer importer
-infra/postgres/    databases and roles
-data/samples/      sample input files; inbox/, archive/, error/ are working folders
-scripts/           local_up.py (infrastructure), supervisor.py (processes) without Docker
-tests/             unit/, component/, e2e/, chaos/, harness/
-docs/              documentation
+services/hub/       ingress (translators, enricher, router), consumers, DLQ, console
+services/gateway/   device simulator, store-and-forward buffer, scenario API
+tools/importer/     file transfer importer
+tools/dev_issuer/   token issuer for local mode and tests only
+infra/              postgres, mosquitto, keycloak
+data/samples/       sample input files; inbox/, archive/, error/ are working folders
+scripts/            local_up, supervisor, run_mosquitto, gen_secrets, export_openapi, compose_smoke
+tests/              unit/, component/, e2e/, chaos/, harness/
+docs/               architecture, patterns, import, sync-protocol, resilience, security,
+                    adr/, api/, asyncapi.yaml, runbook-windows, video-script
 ```
