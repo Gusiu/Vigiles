@@ -14,3 +14,54 @@ jobs:
           python-version: "3.12"
       - run: uv sync --locked
       - run: uv run pytest -m unit
+
+  component:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci-postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      PGPASSWORD: ci-postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Create .env and database roles
+        run: |
+          sed 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-postgres/' .env.example > .env
+          psql -h localhost -U postgres -v ON_ERROR_STOP=1 \
+            -v registry_app_password=change-me-registry \
+            -v importer_password=change-me-importer \
+            -v hub_app_password=change-me-hub \
+            -f infra/postgres/init.sql
+      - run: uv sync --locked
+      - run: uv run pytest -m component
+
+  compose:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose up -d --build
+      - name: Import the sample files through the running stack
+        run: |
+          cp data/samples/zestawienie_B1.csv data/samples/site-config.json data/inbox/
+          sudo chmod -R a+rwX data
+          for i in $(seq 1 60); do
+            runs=$(docker compose exec -T postgres psql -U postgres -d registry -tAc \
+              "select count(*) from import_runs where status = 'completed'" 2>/dev/null || echo 0)
+            [ "$runs" = "2" ] && exit 0
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+      - if: always()
+        run: docker compose down -v
