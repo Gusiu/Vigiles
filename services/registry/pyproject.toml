@@ -3,10 +3,19 @@ name = "vigiles-registry"
 version = "0.1.0"
 description = "System B: registry of fire protection assets, work orders and inspections"
 requires-python = ">=3.12,<3.13"
-dependencies = ["vigiles-common"]
+dependencies = [
+    "httpx>=0.27",
+    "itsdangerous>=2.2",
+    "jinja2>=3.1",
+    "psycopg-pool>=3.2",
+    "python-multipart>=0.0.12",
+    "uvicorn>=0.32",
+    "vigiles-common",
+]
 
 [project.scripts]
 vigiles-registry = "vigiles_registry.cli:main"
+vigiles-registry-api = "vigiles_registry.app:main"
 
 [tool.uv.sources]
 vigiles-common = { workspace = true }
