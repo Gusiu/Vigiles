@@ -55,11 +55,13 @@ def test_user_token_roles(issuer: Issuer, verifier: JwtVerifier) -> None:
         ({"audience": "account"}, "(?i)audience"),
         ({"audience": "field-app-api"}, "(?i)audience"),
         ({"lifetime_s": -60}, "expired"),
-        ({"now": time.time() + 120}, "not yet valid"),
+        ({"starts_in_s": 120}, "not yet valid"),
     ],
 )
 def test_invalid_claims(issuer: Issuer, verifier: JwtVerifier, claims: dict, message: str) -> None:
     args = {"subject": "svc-hub", "roles": ["svc-hub"], "audience": "registry-api", "azp": "svc-hub", "service": True}
+    if "starts_in_s" in claims:
+        claims = {"now": time.time() + claims.pop("starts_in_s")}
     args.update(claims)
     with pytest.raises(AuthError, match=message):
         verifier.verify(issuer.issue(**args))
