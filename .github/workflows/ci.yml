@@ -16,34 +16,16 @@ jobs:
       - run: uv run pytest -m unit
 
   component:
+    # Same setup as local mode: PostgreSQL 16 and Mosquitto 2 on the host,
+    # so failure tests can stop and start the database cluster (C5).
     runs-on: ubuntu-24.04
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: ci-postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s --health-timeout 3s --health-retries 20
-    env:
-      PGPASSWORD: ci-postgres
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      - name: Install Mosquitto
-        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends mosquitto
-      - name: Create .env and database roles
-        run: |
-          sed 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-postgres/' .env.example > .env
-          psql -h localhost -U postgres -v ON_ERROR_STOP=1 \
-            -v registry_app_password=change-me-registry \
-            -v importer_password=change-me-importer \
-            -v hub_app_password=change-me-hub \
-            -f infra/postgres/init.sql
+      - name: Local infrastructure (PostgreSQL, Mosquitto, roles, .env)
+        run: python3 scripts/local_up.py
       - run: uv sync --locked
       - run: uv run pytest -m component
       - name: End-to-end and failure tests on local processes

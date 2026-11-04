@@ -76,6 +76,9 @@ def wait_for_port(port: int, name: str, timeout_s: float = 30) -> None:
 
 
 def ensure_postgres(env: dict[str, str]) -> None:
+    clusters = subprocess.run(["pg_lsclusters", "-h"], capture_output=True, text=True).stdout.split()
+    if PG_VERSION not in clusters[:1] and f"{PG_VERSION} {PG_CLUSTER}" not in " ".join(clusters):
+        run(sudo(["pg_createcluster", PG_VERSION, PG_CLUSTER]))
     if not port_open(5432):
         run(sudo(["pg_ctlcluster", PG_VERSION, PG_CLUSTER, "start"]))
         wait_for_port(5432, "PostgreSQL")
