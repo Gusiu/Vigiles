@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Incidents{% endblock %}
+{% block content %}
+<h1>Incidents</h1>
+<p class="muted">Supervision only - alarms in a real building are handled by a fire alarm control panel compliant with EN 54-2.</p>
+<table>
+  <tr><th>Decided</th><th>Kind</th><th>Site / zone</th><th>Detectors</th><th>First signal</th><th>Correlation ID</th></tr>
+  {% for i in incidents %}
+  <tr><td>{{ i.decided_at }}</td><td>{{ i.kind }}</td><td>{{ i.site }} / {{ i.zone }}</td><td>{{ i.detectors | join(", ") }}</td><td>{{ i.first_at }}</td><td class="muted">{{ i.correlation_id or "" }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

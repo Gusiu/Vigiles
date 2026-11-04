@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Work orders{% endblock %}
+{% block content %}
+<h1>Work orders</h1>
+<form class="card" method="post" action="/ui/work-orders">
+  <label>Asset <input name="asset_code" list="codes" required></label>
+  <datalist id="codes">{% for c in codes %}<option value="{{ c }}">{% endfor %}</datalist>
+  <label>Reason <select name="reason">{% for r in reasons %}<option>{{ r }}</option>{% endfor %}</select></label>
+  <label>Technician <select name="assigned_to"><option value="">-</option>{% for t in technicians %}<option>{{ t }}</option>{% endfor %}</select></label>
+  <label>Due <input type="date" name="due_date"></label>
+  <label>Description <input name="description" size="30"></label>
+  <button>Create</button>
+</form>
+<table>
+  <tr><th>Created</th><th>Asset</th><th>Reason</th><th>Status</th><th>Technician</th><th>Due</th><th>Source</th><th>Rev</th><th></th></tr>
+  {% for o in orders %}
+  <tr>
+    <td>{{ o.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+    <td>{{ o.asset_code }}</td>
+    <td>{{ o.reason }}{% if o.description %}<br><span class="muted">{{ o.description }}</span>{% endif %}</td>
+    <td><span class="badge {{ o.status }}">{{ o.status }}</span></td>
+    <td>{{ o.assigned_to or "-" }}</td>
+    <td>{{ o.due_date or "-" }}</td>
+    <td class="muted">{{ o.source }}</td>
+    <td>{{ o.rev }}</td>
+    <td>
+      {% if o.status in ("nowe", "przydzielone", "w_realizacji") %}
+      <form class="inline" method="post" action="/ui/work-orders/{{ o.id }}/assign">
+        <select name="assigned_to"><option value="">-</option>{% for t in technicians %}<option {% if t == o.assigned_to %}selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+        <input type="date" name="due_date" value="{{ o.due_date or '' }}"><button>Assign</button>
+      </form>
+      <form class="inline" method="post" action="/ui/work-orders/{{ o.id }}/cancel"><button>Cancel</button></form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

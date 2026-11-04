@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Conflicts{% endblock %}
+{% block content %}
+<h1>Open conflicts</h1>
+{% if not open_conflicts %}<p class="muted">No open conflicts.</p>{% endif %}
+<table>
+  {% if open_conflicts %}<tr><th>Asset</th><th>Field</th><th>Base</th><th>Office (server)</th><th>Field app (client)</th><th>Resolve</th></tr>{% endif %}
+  {% for c in open_conflicts %}
+  <tr>
+    <td>{{ c.asset_code or c.entity_id }}</td>
+    <td>{{ c.field }}</td>
+    <td>{{ show(c.base_value) }}</td>
+    <td>{{ show(c.server_value) }}</td>
+    <td>{{ show(c.client_value) }}</td>
+    <td>
+      <form method="post" action="/ui/conflicts/{{ c.id }}/resolve">
+        <button name="choice" value="server">Keep office value</button>
+        <button name="choice" value="client">Take field value</button>
+        <input name="value" placeholder="own value"><button name="choice" value="custom">Use own</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+<h2>Recently resolved</h2>
+<table>
+  <tr><th>Asset</th><th>Field</th><th>Value</th><th>By</th><th>At</th></tr>
+  {% for c in resolved %}
+  <tr><td>{{ c.asset_code or c.entity_id }}</td><td>{{ c.field }}</td><td>{{ show(c.resolved_value) }}</td><td>{{ c.resolved_by }}</td><td>{{ c.resolved_at }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

@@ -42,6 +42,9 @@ def create_app(settings: RegistrySettings | None = None) -> FastAPI:
     install_problem_handlers(app)
     app.include_router(health_router({"database": database.ping}))
     app.include_router(api.router)
+    from vigiles_registry.ui import install_ui
+
+    install_ui(app, settings)
     return app
 
 
