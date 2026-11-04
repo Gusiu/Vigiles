@@ -60,7 +60,9 @@ jobs:
           for i in $(seq 1 60); do
             runs=$(docker compose exec -T postgres psql -U postgres -d registry -tAc \
               "select count(*) from import_runs where status = 'completed'" 2>/dev/null || echo 0)
-            [ "$runs" = "2" ] && exit 0
+            assets=$(curl -fsS -H "Authorization: Bearer change-me-field-app-token" \
+              "http://localhost:8001/api/v1/sync/changes?since=0" 2>/dev/null | grep -o '"entity":"asset"' | wc -l || echo 0)
+            [ "$runs" = "2" ] && [ "$assets" -ge 11 ] && curl -fsS http://localhost:8002/health/ready && exit 0
             sleep 2
           done
           docker compose logs

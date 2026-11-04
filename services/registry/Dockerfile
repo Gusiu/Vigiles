@@ -15,4 +15,6 @@ ENV PATH=/opt/venv/bin:$PATH
 RUN useradd --uid 10001 --no-create-home vigiles
 USER vigiles
 WORKDIR /app
-CMD ["vigiles-registry", "migrate"]
+EXPOSE 8001
+# Migrations are idempotent and lock-protected, so every start applies them.
+CMD ["sh", "-c", "vigiles-registry migrate && exec vigiles-registry-api"]

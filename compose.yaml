@@ -7,6 +7,14 @@ x-db-passwords: &db-passwords
   IMPORTER_DB_PASSWORD: ${IMPORTER_DB_PASSWORD:?set it in .env}
   HUB_DB_PASSWORD: ${HUB_DB_PASSWORD:?set it in .env}
 
+x-service-env: &service-env
+  AUTH_MODE: static
+  SERVICE_TOKENS: ${SERVICE_TOKENS:?set it in .env}
+  SESSION_SECRET: ${SESSION_SECRET:?set it in .env}
+  REGISTRY_URL: http://registry:8001
+  FIELD_APP_URL: http://field-app:8002
+  LOG_FORMAT: json
+
 services:
   postgres:
     image: postgres:16
@@ -27,17 +35,44 @@ services:
       retries: 20
     restart: unless-stopped
 
-  registry-migrate:
+  registry:
     build:
       context: .
       dockerfile: services/registry/Dockerfile
-    command: ["vigiles-registry", "migrate"]
     environment:
+      <<: *service-env
       REGISTRY_DATABASE_URL: postgresql://registry_app:${REGISTRY_DB_PASSWORD}@postgres:5432/registry
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health/ready', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
     depends_on:
       postgres:
         condition: service_healthy
-    restart: "no"
+    restart: unless-stopped
+
+  field-app:
+    build:
+      context: .
+      dockerfile: services/field_app/Dockerfile
+    environment:
+      <<: *service-env
+    volumes:
+      - field-app-data:/var/lib/vigiles
+    ports:
+      - "8002:8002"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health/ready', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      registry:
+        condition: service_healthy
+    restart: unless-stopped
 
   importer:
     build:
@@ -51,9 +86,10 @@ services:
     volumes:
       - ./data:/data
     depends_on:
-      registry-migrate:
-        condition: service_completed_successfully
+      registry:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   pgdata:
+  field-app-data:
