@@ -1,5 +1,4 @@
 import psycopg
-import pytest
 from fastapi.testclient import TestClient
 
 from harness.db import Database

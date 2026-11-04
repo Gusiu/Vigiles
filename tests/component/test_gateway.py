@@ -3,7 +3,6 @@ import queue
 import uuid
 
 import paho.mqtt.client as mqtt
-import pytest
 from fastapi.testclient import TestClient
 from paho.mqtt.enums import CallbackAPIVersion
 
