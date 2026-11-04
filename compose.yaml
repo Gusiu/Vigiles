@@ -1,4 +1,5 @@
-# Full stack for the demo. Requires .env (copy .env.example and change the passwords).
+# Full stack for the demo.
+#   python scripts/gen_secrets.py        (.env and infra/keycloak/realm.json)
 #   docker compose up -d --build --wait
 name: vigiles
 
@@ -8,9 +9,21 @@ x-db-passwords: &db-passwords
   HUB_DB_PASSWORD: ${HUB_DB_PASSWORD:?set it in .env}
 
 x-service-env: &service-env
-  AUTH_MODE: static
+  AUTH_MODE: oidc
   SERVICE_TOKENS: ${SERVICE_TOKENS:?set it in .env}
   SESSION_SECRET: ${SESSION_SECRET:?set it in .env}
+  # Tokens carry the issuer as the browser sees Keycloak; services fetch
+  # keys and tokens over the internal network (PLAN.md pitfall 10).
+  OIDC_ISSUER: http://localhost:8080/realms/vigiles
+  OIDC_PUBLIC_URL: http://localhost:8080/realms/vigiles
+  OIDC_JWKS_URL: http://keycloak:8080/realms/vigiles/protocol/openid-connect/certs
+  OIDC_TOKEN_URL: http://keycloak:8080/realms/vigiles/protocol/openid-connect/token
+  OIDC_SECRET_SVC_HUB: ${OIDC_SECRET_SVC_HUB:?run scripts/gen_secrets.py}
+  OIDC_SECRET_SVC_FIELD_APP: ${OIDC_SECRET_SVC_FIELD_APP:?run scripts/gen_secrets.py}
+  OIDC_SECRET_SVC_REGISTRY: ${OIDC_SECRET_SVC_REGISTRY:?run scripts/gen_secrets.py}
+  OIDC_UI_SECRET_REGISTRY: ${OIDC_UI_SECRET_REGISTRY:?run scripts/gen_secrets.py}
+  OIDC_UI_SECRET_FIELD_APP: ${OIDC_UI_SECRET_FIELD_APP:?run scripts/gen_secrets.py}
+  OIDC_UI_SECRET_HUB: ${OIDC_UI_SECRET_HUB:?run scripts/gen_secrets.py}
   REGISTRY_URL: http://registry:8001
   FIELD_APP_URL: http://field-app:8002
   LOG_FORMAT: json
@@ -35,6 +48,31 @@ services:
       retries: 20
     restart: unless-stopped
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run scripts/gen_secrets.py}
+      # Fixed public hostname: iss is always http://localhost:8080/...,
+      # also for tokens requested by services through keycloak:8080.
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./infra/keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      # The image has no curl: plain bash /dev/tcp against the management
+      # port 9000, which is separate from 8080 (PLAN.md pitfall 12).
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
   registry:
     build:
       context: .
@@ -51,6 +89,8 @@ services:
       retries: 20
     depends_on:
       postgres:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
     restart: unless-stopped
 
