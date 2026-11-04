@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Assets{% endblock %}
+{% block content %}
+<div hx-get="/ui/sync" hx-trigger="load" hx-swap="innerHTML"></div>
+{% include "_offline.html" %}
+<h1>Assets</h1>
+<table>
+  <tr><th>Code</th><th>Location</th><th>Condition</th><th>Notes</th><th>Server rev</th></tr>
+  {% for a in assets %}
+  <tr>
+    <td>{{ a.code }} {% if a.id in conflicts %}<span class="badge conflict">in conflict</span>{% endif %}</td>
+    <td>{{ a.label }}</td>
+    <td><span class="badge {{ a.condition }}">{{ a.condition }}</span></td>
+    <td>
+      <form method="post" action="/ui/assets/{{ a.id }}/notes" class="inline">
+        <input name="notes" value="{{ a.notes or '' }}" size="30"><button>Save</button>
+      </form>
+    </td>
+    <td>{{ a.server_rev }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

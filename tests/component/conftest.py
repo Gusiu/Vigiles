@@ -53,3 +53,20 @@ def registry(seeded_db: Database):
 
     with TestClient(create_app(registry_settings(seeded_db.owner_url))) as client:
         yield client
+
+
+@pytest.fixture
+def field_app(registry, tmp_path):
+    """Field app wired to the in-process registry (no background threads)."""
+    from fastapi.testclient import TestClient
+
+    from harness.registry import SERVICE_TOKENS
+    from vigiles_field_app.app import create_app
+    from vigiles_field_app.settings import FieldAppSettings
+
+    settings = FieldAppSettings(
+        field_app_db_path=tmp_path / "field.sqlite", auth_mode="static", service_tokens=SERVICE_TOKENS,
+        background_workers=False, session_secret="test", retry_base_s=0.01, retry_cap_s=0.02,
+    )
+    with TestClient(create_app(settings, registry_http=registry)) as client:
+        yield client

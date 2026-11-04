@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Task{% endblock %}
+{% block content %}
+<div hx-get="/ui/sync" hx-trigger="load" hx-swap="innerHTML"></div>
+{% include "_offline.html" %}
+{% if not task %}<p>Task not found.</p>{% else %}
+<h1>{{ task.title }} <span class="badge {{ task.status }}">{{ task.status }}</span></h1>
+{% if asset %}
+<p>{{ asset.code }} - {{ asset.label }} - condition <span class="badge {{ asset.condition }}">{{ asset.condition }}</span>
+  {% if asset.id in conflicts %}<span class="badge conflict">in conflict</span>{% endif %}</p>
+<form class="card" method="post" action="/ui/assets/{{ asset.id }}/notes">
+  <input type="hidden" name="back" value="/ui/tasks/{{ task.id }}">
+  <label>Notes <textarea name="notes" rows="2" cols="50">{{ asset.notes or "" }}</textarea></label>
+  <button>Save notes</button>
+</form>
+{% endif %}
+{% if task.description %}<p>{{ task.description }}</p>{% endif %}
+{% if task.status in ("NEW", "ASSIGNED") %}
+<form method="post" action="/ui/tasks/{{ task.id }}/start"><button>Start</button></form>
+{% endif %}
+{% if task.status in ("NEW", "ASSIGNED", "IN_PROGRESS") %}
+<h2>Inspection result</h2>
+<form class="card" method="post" action="/ui/tasks/{{ task.id }}/inspection">
+  <label>Result <select name="result"><option value="OK">OK</option><option value="NEEDS_REPAIR">needs repair</option><option value="FAILED">failed</option></select></label>
+  <label>Findings <textarea name="findings" rows="3" cols="50"></textarea></label>
+  <button>Submit and close task</button>
+</form>
+{% endif %}
+{% for i in inspections %}<p class="muted">Inspection {{ i.performed_at }}: {{ i.result }} - {{ i.findings or "" }}</p>{% endfor %}
+{% endif %}
+{% endblock %}

@@ -63,12 +63,12 @@ def install_web(app: FastAPI, templates: Jinja2Templates, title: str, session_se
     app.mount("/static", StaticFiles(directory=str(_HERE / "static")), name="static")
     templates.env.globals.update(service_title=title, nav=nav)
 
-    def render(request: Request, name: str, status: int = 200, **context: Any) -> HTMLResponse:
+    def render(request: Request, name: str, status_code: int = 200, **context: Any) -> HTMLResponse:
         user = request.session.get("user")
         principal = None
         if user in DEMO_USERS:
             principal = Principal.of(user, DEMO_USERS[user], "user")
-        return templates.TemplateResponse(request, name, {"user": principal, **context}, status_code=status)
+        return templates.TemplateResponse(request, name, {"user": principal, **context}, status_code=status_code)
 
     app.state.render = render
 
@@ -78,7 +78,7 @@ def install_web(app: FastAPI, templates: Jinja2Templates, title: str, session_se
 
     @app.exception_handler(UiForbidden)
     async def _forbidden(request: Request, exc: UiForbidden) -> HTMLResponse:
-        return render(request, "forbidden.html", status=403, detail=exc.detail)
+        return render(request, "forbidden.html", status_code=403, detail=exc.detail)
 
     @app.get("/", include_in_schema=False)
     def index() -> RedirectResponse:
