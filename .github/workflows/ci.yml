@@ -44,6 +44,8 @@ jobs:
             -f infra/postgres/init.sql
       - run: uv sync --locked
       - run: uv run pytest -m component
+      - name: End-to-end and failure tests on local processes
+        run: uv run pytest -m "e2e or chaos"
 
   compose:
     runs-on: ubuntu-24.04
