@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Console{% endblock %}
+{% block content %}
+<h1>Hub console</h1>
+<p>Outbox: pending <strong>{{ counts.get("pending", 0) }}</strong>, sent {{ counts.get("sent", 0) }}, dead {{ counts.get("dead", 0) }}
+  <a href="/ui/console">refresh</a></p>
+<h2>Live events (Wire Tap)</h2>
+<table id="events"><tr><th>Time</th><th>Instance</th><th>Stage</th><th>Event</th><th>Outcome</th><th>Details</th></tr></table>
+<script>
+  const table = document.getElementById("events");
+  const source = new EventSource("/api/v1/events/stream");
+  source.onmessage = (msg) => {
+    const e = JSON.parse(msg.data);
+    const row = table.insertRow(1);
+    for (const value of [e.ts.slice(11, 23), e.instance, e.stage, e.event, e.outcome, JSON.stringify(e.details)]) {
+      row.insertCell().textContent = value;
+    }
+    while (table.rows.length > 200) table.deleteRow(-1);
+  };
+</script>
+<h2>Outbox (not sent)</h2>
+<table>
+  <tr><th>#</th><th>Kind</th><th>Status</th><th>Attempts</th><th>Next attempt</th><th>Last error</th></tr>
+  {% for o in pending %}<tr><td>{{ o.id }}</td><td>{{ o.kind }}</td><td>{{ o.status }}</td><td>{{ o.attempts }}</td><td>{{ o.next_attempt_at }}</td><td class="muted">{{ o.last_error or "" }}</td></tr>{% endfor %}
+</table>
+{% if dead is not none %}
+<h2>Dead letters</h2>
+<table>
+  <tr><th>#</th><th>Reason</th><th>Source</th><th>Error</th><th>Created</th><th>Replayed</th><th></th></tr>
+  {% for d in dead %}
+  <tr><td>{{ d.id }}</td><td>{{ d.reason }}</td><td>{{ d.source_topic }}</td><td class="muted">{{ d.error }}</td><td>{{ d.created_at }}</td><td>{{ d.replayed_at or "" }}</td>
+    <td>{% if user and "dlq:replay" in user.permissions and not d.replayed_at %}<form method="post" action="/ui/dead-letters/{{ d.id }}/replay"><button>Replay</button></form>{% endif %}</td></tr>
+  {% endfor %}
+</table>
+{% endif %}
+{% endblock %}

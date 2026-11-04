@@ -64,12 +64,12 @@ def make_client(settings: MqttSettings, client_id: str, durable: bool = True, re
 class Consumer:
     """One durable subscription processed by one worker thread."""
 
-    def __init__(self, settings: MqttSettings, client_id: str, topic: str,
+    def __init__(self, settings: MqttSettings, client_id: str, topic: str | list[str],
                  handler: Callable[[mqtt.MQTTMessage], None], queue_size: int = 20,
                  policy: RetryPolicy = RetryPolicy(base_s=0.5, cap_s=5.0)) -> None:
         self.settings = settings
         self.client_id = client_id
-        self.topic = topic
+        self.topics = [topic] if isinstance(topic, str) else list(topic)
         self.handler = handler
         self.queue: queue.Queue[mqtt.MQTTMessage] = queue.Queue(maxsize=queue_size)
         self.policy = policy
@@ -77,7 +77,9 @@ class Consumer:
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
         self.client.on_disconnect = self._on_disconnect
+        self.client.on_subscribe = self._on_subscribe
         self.connected = threading.Event()
+        self.subscribed = threading.Event()
         self._stop = threading.Event()
         self._worker = threading.Thread(target=self._work, name=f"mqtt-{client_id}", daemon=True)
 
@@ -85,13 +87,20 @@ class Consumer:
         if reason_code.is_failure:
             log.error("mqtt_connect_failed", client_id=self.client_id, reason=str(reason_code))
             return
-        client.subscribe(self.topic, qos=1)
+        client.subscribe([(t, 1) for t in self.topics])
         self.connected.set()
-        log.info("mqtt_connected", client_id=self.client_id, topic=self.topic,
+        log.info("mqtt_connected", client_id=self.client_id, topics=self.topics,
                  session_present=flags.session_present)
+
+    def _on_subscribe(self, client, userdata, mid, reason_codes, properties) -> None:
+        if all(not rc.is_failure for rc in reason_codes):
+            self.subscribed.set()
+        else:
+            log.error("mqtt_subscribe_failed", client_id=self.client_id, reasons=[str(rc) for rc in reason_codes])
 
     def _on_disconnect(self, client, userdata, flags, reason_code, properties) -> None:
         self.connected.clear()
+        self.subscribed.clear()
         if not self._stop.is_set():
             log.warning("mqtt_disconnected", client_id=self.client_id, reason=str(reason_code))
 

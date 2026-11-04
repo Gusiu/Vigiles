@@ -21,6 +21,7 @@ class DatabaseSettings(BaseSettings):
     pg_admin_url: str
     registry_database_url: str
     importer_database_url: str
+    hub_database_url: str = ""
 
 
 def with_database(url: str, name: str) -> str:
