@@ -1,4 +1,3 @@
-from pathlib import Path
 
 from vigiles_common.config import AuthSettings
 
@@ -25,4 +24,3 @@ class HubSettings(AuthSettings):
     http_timeout_s: float = 5.0
     outbox_interval_s: float = 1.0
     background_workers: bool = True
-    migrations_dir: Path | None = None
