@@ -1,0 +1,9 @@
+Nr elementu;Typ;Budynek;Kondygnacja;Pomieszczenie;Przegroda;Instalacja;Œrednica [mm];System uszczelnienia;Klasa EI;Data monta¿u;Brygada;Uwagi
+PI-B1-4-001;przejœcie instalacyjne;B1;4;4.01;œciana;rura PVC;110;ko³nierz ogniochronny;EI 60;12.05.2025;B-2;
+;przejœcie instalacyjne;B1;4;4.02;œciana;rura PVC;110;ko³nierz ogniochronny;EI 60;12.05.2025;B-2;brak numeru
+PI-B1-4-001;przejœcie instalacyjne;B1;4;4.03;œciana;rura PVC;75;ko³nierz ogniochronny;EI 60;12.05.2025;B-2;numer zdublowany
+PI-B1-4-002;przejœcie instalacyjne;B1;4;4.04;œciana;rura PVC;110;ko³nierz ogniochronny;EI 75;12.05.2025;B-2;
+PI-B1-4-003;przejœcie instalacyjne;B1;4;4.05;œciana;rura PVC;110;ko³nierz ogniochronny;EI 60;12.05.2031;B-2;
+1,23E+11;przejœcie instalacyjne;B1;4;4.06;œciana;rura PVC;110;ko³nierz ogniochronny;EI 60;12.05.2025;B-2;
+PI-B1-4-004;przejœcie instalacyjne;B1;4;4.07;œciana;rura PVC;sto;ko³nierz ogniochronny;EI 60;12.05.2025;B-2;
+PI-B1-4-005;przejœcie instalacyjne;B1;4;4.08;strop;rura PE;63;opaska ogniochronna;EI 60;13.05.2025;B-2;
