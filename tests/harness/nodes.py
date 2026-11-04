@@ -7,6 +7,7 @@
 """
 
 import importlib.util
+import os
 import subprocess
 from pathlib import Path
 
@@ -35,7 +36,8 @@ class NodeController:
 
     def _cluster(self, action: str) -> None:
         # Local mode: PostgreSQL is the system cluster installed by local_up.py.
-        subprocess.run(["pg_ctlcluster", "16", "main", action], check=True)
+        sudo = [] if os.geteuid() == 0 else ["sudo"]
+        subprocess.run([*sudo, "pg_ctlcluster", "16", "main", action], check=True)
         if action == "start":
             subprocess.run(["pg_isready", "-h", "127.0.0.1", "-t", "30"], check=True, capture_output=True)
 
