@@ -22,8 +22,8 @@ vigiles-import watch                                 # poll data/inbox every 10 
 vigiles-import watch --interval 2
 ```
 
-In the cloud or local environment prefix the commands with `uv run`. In
-compose the `importer` service runs `watch` on the bind-mounted `./data`.
+Without Docker prefix the commands with `uv run`. In compose the
+`importer` service runs `watch` on the bind-mounted `./data`.
 
 Exit codes of `run`: `0` all files imported or already imported, `2` some
 rows rejected, `1` a file failed or the database is unavailable.
