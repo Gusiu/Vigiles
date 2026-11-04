@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Assets{% endblock %}
+{% block content %}
+<h1>Assets <span class="muted">({{ assets | length }})</span></h1>
+<table>
+  <tr><th>Code</th><th>Type</th><th>Location</th><th>Zone</th><th>Rating</th><th>Installed</th><th>Condition</th><th>Notes</th><th>Rev</th><th>Origin</th></tr>
+  {% for a in assets %}
+  <tr>
+    <td>{{ a.code }} {% if a.in_conflict %}<span class="badge conflict">conflict</span>{% endif %}</td>
+    <td>{{ a.asset_type }}</td>
+    <td>{{ a.building }} / {{ a.floor or "-" }} / {{ a.room or "-" }}{% if a.partition %} / {{ a.partition }}{% endif %}</td>
+    <td>{{ a.zone_code or "-" }}</td>
+    <td>{{ a.fire_rating or "-" }}</td>
+    <td>{{ a.installed_at or "-" }}</td>
+    <td><span class="badge {{ a.condition }}">{{ a.condition }}</span></td>
+    <td>{{ a.notes or "" }}</td>
+    <td>{{ a.rev }}</td>
+    <td class="muted">{{ a.origin or "" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
