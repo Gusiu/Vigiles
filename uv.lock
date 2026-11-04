@@ -6,6 +6,7 @@ requires-python = "==3.12.*"
 members = [
     "vigiles",
     "vigiles-common",
+    "vigiles-field-app",
     "vigiles-importer",
     "vigiles-registry",
 ]
@@ -448,6 +449,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "vigiles-common" },
+    { name = "vigiles-field-app" },
     { name = "vigiles-importer" },
     { name = "vigiles-registry" },
 ]
@@ -462,6 +464,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "vigiles-common", editable = "libs/common" },
+    { name = "vigiles-field-app", editable = "services/field_app" },
     { name = "vigiles-importer", editable = "tools/importer" },
     { name = "vigiles-registry", editable = "services/registry" },
 ]
@@ -498,6 +501,23 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.16.2" },
     { name = "python-multipart", specifier = ">=0.0.12" },
     { name = "structlog", specifier = ">=26.1.0" },
+]
+
+[[package]]
+name = "vigiles-field-app"
+version = "0.1.0"
+source = { editable = "services/field_app" }
+dependencies = [
+    { name = "httpx" },
+    { name = "uvicorn" },
+    { name = "vigiles-common" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "uvicorn", specifier = ">=0.32" },
+    { name = "vigiles-common", editable = "libs/common" },
 ]
 
 [[package]]
