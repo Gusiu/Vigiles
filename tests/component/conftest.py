@@ -78,3 +78,25 @@ def broker(tmp_path_factory):
 
     with mosquitto(tmp_path_factory.mktemp("mosquitto") / "state") as running:
         yield running
+
+
+@pytest.fixture
+def fresh_broker(tmp_path):
+    """A broker of its own, so durable sessions never leak between tests."""
+    from harness.broker import mosquitto
+
+    with mosquitto(tmp_path / "mqtt-state") as running:
+        yield running
+
+
+@pytest.fixture
+def hub_db(db_settings: DatabaseSettings):
+    """Throwaway hub database owned by hub_app, migrated; yields its URL."""
+    from harness.db import with_database
+    from vigiles_common.migrations import apply_migrations
+    from vigiles_hub.app import MIGRATIONS
+
+    with throwaway_database(db_settings, owner="hub_app") as db:
+        url = with_database(db_settings.hub_database_url, db.name)
+        apply_migrations(url, MIGRATIONS)
+        yield url
