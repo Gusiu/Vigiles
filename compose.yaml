@@ -74,6 +74,87 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  mosquitto:
+    image: eclipse-mosquitto:2.0.18
+    entrypoint: ["/bin/sh", "/vigiles/entrypoint.sh"]
+    environment:
+      MQTT_GW01_PASSWORD: ${MQTT_GW01_PASSWORD:?set it in .env}
+      MQTT_HUB_PASSWORD: ${MQTT_HUB_PASSWORD:?set it in .env}
+      MQTT_EXPLORER_PASSWORD: ${MQTT_EXPLORER_PASSWORD:?set it in .env}
+    volumes:
+      - ./infra/mosquitto:/vigiles:ro
+      - mosquitto-data:/mosquitto/data
+    ports:
+      - "1883:1883"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 1883 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  hub-1: &hub
+    build:
+      context: .
+      dockerfile: services/hub/Dockerfile
+    environment: &hub-env
+      <<: *service-env
+      HUB_INSTANCE: hub-1
+      HUB_PORT: "8003"
+      HUB_DATABASE_URL: postgresql://hub_app:${HUB_DB_PASSWORD}@postgres:5432/hub
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_HUB_PASSWORD: ${MQTT_HUB_PASSWORD}
+    ports:
+      - "8003:8003"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health/ready' % os.environ['HUB_PORT'], timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+    restart: unless-stopped
+
+  hub-2:
+    <<: *hub
+    environment:
+      <<: *hub-env
+      HUB_INSTANCE: hub-2
+      HUB_PORT: "8004"
+    ports:
+      - "8004:8004"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_GW01_PASSWORD: ${MQTT_GW01_PASSWORD}
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY:?set it in .env}
+      LOG_FORMAT: json
+    volumes:
+      - ./data/samples/site-config.json:/vigiles/site-config.json:ro
+      - gateway-data:/var/lib/vigiles
+    ports:
+      - "127.0.0.1:8005:8005"  # scenario API on localhost only
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8005/health/live', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    restart: unless-stopped
+
   importer:
     build:
       context: .
@@ -93,3 +174,5 @@ services:
 volumes:
   pgdata:
   field-app-data:
+  mosquitto-data:
+  gateway-data:
