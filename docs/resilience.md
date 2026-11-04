@@ -39,8 +39,11 @@ is retried and its message is not acknowledged, so the broker keeps it.
 ## Failure matrix
 
 Each row is a test in `tests/chaos/`, run on the local stack (all services
-as separate processes, `NodeController(local)`); the same tests drive
-`docker compose stop/kill/start` with `NodeController(compose)`. Outages
+as separate processes, `NodeController(local)`), locally and in CI.
+`NodeController` also has a `compose` backend (`docker compose
+stop/kill/start`), but the test harness starts only the local stack; on
+Docker the scenarios are run by hand from the runbook, and CI checks the
+compose stack with a smoke test (S1, S4, Keycloak tokens). Outages
 are shortened from the 60/30 s of the plan to 5 s (`CHAOS_OUTAGE_S`) -
 what matters is that work continues during the outage and everything
 arrives exactly once afterwards.
