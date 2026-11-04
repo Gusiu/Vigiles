@@ -17,7 +17,6 @@ import hashlib
 import json
 import shutil
 import threading
-import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -26,6 +25,7 @@ from pathlib import Path
 
 import psycopg
 
+from vigiles_common.correlation import correlation_scope
 from vigiles_common.logging import bound_context, get_logger
 from vigiles_importer import store
 from vigiles_importer.asset_rows import parse_assets
@@ -112,7 +112,7 @@ class Importer:
     # -- single file -------------------------------------------------------
 
     def import_file(self, path: Path) -> FileResult:
-        with bound_context(correlation_id=str(uuid.uuid4()), file=path.name):
+        with correlation_scope(), bound_context(file=path.name):
             return self._import_file(path)
 
     def _import_file(self, path: Path) -> FileResult:

@@ -14,13 +14,13 @@ import json
 import random
 import sqlite3
 import threading
-import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
 
-from vigiles_common.logging import bound_context, get_logger
+from vigiles_common.correlation import correlation_scope
+from vigiles_common.logging import get_logger
 from vigiles_common.retry import RetryPolicy, parse_retry_after
 from vigiles_field_app.db import LocalDb
 from vigiles_field_app.sync import translator
@@ -83,7 +83,7 @@ class SyncEngine:
     def sync_once(self) -> dict[str, Any]:
         if self.offline:
             return {"skipped": "offline"}
-        with self._lock, bound_context(correlation_id=str(uuid.uuid4())):
+        with self._lock, correlation_scope():
             pushed = self.push()
             pulled = self.pull()
             return {"pushed": pushed, "pulled": pulled}

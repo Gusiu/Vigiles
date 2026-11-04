@@ -46,3 +46,13 @@ def test_id_does_not_leak_outside_request(client: TestClient) -> None:
     client.get("/echo", headers={HEADER: "order-42"})
 
     assert current_correlation_id() is None
+
+
+def test_correlation_scope_for_background_work() -> None:
+    from vigiles_common.correlation import correlation_scope
+
+    with correlation_scope("job-7") as cid:
+        assert cid == current_correlation_id() == "job-7"
+    with correlation_scope() as generated:
+        assert uuid.UUID(generated)
+    assert current_correlation_id() is None
