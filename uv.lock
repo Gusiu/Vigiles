@@ -6,6 +6,7 @@ requires-python = "==3.12.*"
 members = [
     "vigiles",
     "vigiles-common",
+    "vigiles-registry",
 ]
 
 [[package]]
@@ -347,6 +348,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "vigiles-common" },
+    { name = "vigiles-registry" },
 ]
 
 [package.dev-dependencies]
@@ -356,7 +358,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "vigiles-common", editable = "libs/common" }]
+requires-dist = [
+    { name = "vigiles-common", editable = "libs/common" },
+    { name = "vigiles-registry", editable = "services/registry" },
+]
 
 [package.metadata.requires-dev]
 dev = [
@@ -382,3 +387,14 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.16.2" },
     { name = "structlog", specifier = ">=26.1.0" },
 ]
+
+[[package]]
+name = "vigiles-registry"
+version = "0.1.0"
+source = { editable = "services/registry" }
+dependencies = [
+    { name = "vigiles-common" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "vigiles-common", editable = "libs/common" }]
