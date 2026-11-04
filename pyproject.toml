@@ -3,7 +3,7 @@ name = "vigiles"
 version = "0.1.0"
 description = "Fire protection maintenance and monitoring platform - integration workshop project"
 requires-python = ">=3.12,<3.13"
-dependencies = ["vigiles-common"]
+dependencies = ["vigiles-common", "vigiles-registry"]
 
 [dependency-groups]
 dev = [
@@ -15,10 +15,11 @@ dev = [
 package = false
 
 [tool.uv.workspace]
-members = ["libs/*"]
+members = ["libs/*", "services/*"]
 
 [tool.uv.sources]
 vigiles-common = { workspace = true }
+vigiles-registry = { workspace = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

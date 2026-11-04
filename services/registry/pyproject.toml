@@ -1,0 +1,19 @@
+[project]
+name = "vigiles-registry"
+version = "0.1.0"
+description = "System B: registry of fire protection assets, work orders and inspections"
+requires-python = ">=3.12,<3.13"
+dependencies = ["vigiles-common"]
+
+[project.scripts]
+vigiles-registry = "vigiles_registry.cli:main"
+
+[tool.uv.sources]
+vigiles-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vigiles_registry"]
