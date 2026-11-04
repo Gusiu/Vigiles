@@ -24,6 +24,7 @@ class HubSettings(ServiceSettings):
     damper_closing_time_s: float = 60.0
     contamination_pct: float = 80.0
     catalog_ttl_s: float = 60.0
+    gateway_offline_grace_s: float = 20.0
     catalog_min_refresh_s: float = 2.0
     http_timeout_s: float = 5.0
     outbox_interval_s: float = 1.0

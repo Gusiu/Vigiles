@@ -51,7 +51,7 @@ def hub(fresh_broker, hub_db, registry_stub, httpserver):
         hub_instance="hub-t", hub_database_url=hub_db, registry_url=httpserver.url_for(""), auth_mode="static",
         service_tokens=SERVICE_TOKENS, session_secret="test", mqtt_host=fresh_broker.host,
         mqtt_port=fresh_broker.port, mqtt_hub_password=PASSWORDS["hub"], alarm_window_s=2, alarm_lateness_s=0.5,
-        sweeper_interval_s=0.2, outbox_interval_s=0.1, catalog_min_refresh_s=0,
+        sweeper_interval_s=0.2, outbox_interval_s=0.1, catalog_min_refresh_s=0, gateway_offline_grace_s=0.5,
     )
     with TestClient(create_app(settings)) as client:
         yield client
@@ -192,3 +192,18 @@ def test_console_and_api_permissions(hub) -> None:
     assert hub.get("/api/v1/outbox").status_code == 200
     assert hub.get("/api/v1/dead-letters").status_code == 403
     assert hub.get("/ui/console").status_code == 200
+
+
+
+def test_will_after_broker_restart_is_cancelled_when_same_session_returns(hub, gateway, registry_stub) -> None:
+    _ready(hub)
+    hub.app.state.faults.offline_grace_s = 30
+    from vigiles_hub.consumers.base import connectivity_tag
+
+    tag = connectivity_tag("gw-01", "s-2")
+    gateway("vigiles/status/gw-01", json.dumps({"status": "offline", "session": "s-2"}).encode())
+    eventually(lambda: _check(_hub_sql(hub, "SELECT count(*) FROM outbox WHERE kind = %s", (tag,)) == [(3,)]), timeout=10)
+
+    gateway("vigiles/status/gw-01", json.dumps({"status": "online", "session": "s-2"}).encode())
+    eventually(lambda: _check(_hub_sql(hub, "SELECT count(*) FROM outbox WHERE kind = %s", (tag,)) == [(0,)]), timeout=10)
+    assert registry_stub.of("/api/v1/work-orders") == []
