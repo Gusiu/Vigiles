@@ -34,6 +34,7 @@ class GatewaySettings(ServiceSettings):
     mqtt_host: str = "localhost"
     mqtt_port: int = 1883
     mqtt_gw01_password: str
+    gateway_reconnect_hold_s: float = 3.0
 
 
 class AlarmIn(BaseModel):
@@ -65,7 +66,7 @@ class Gateway:
         self.session = datetime.now(UTC).isoformat()
         self.forwarder = Forwarder(
             MqttSettings(settings.mqtt_host, settings.mqtt_port, settings.gateway_id, settings.mqtt_gw01_password),
-            settings.gateway_id, self.buffer, self.session,
+            settings.gateway_id, self.buffer, self.session, reconnect_hold_s=settings.gateway_reconnect_hold_s,
         )
 
     def device(self, device_id: str) -> dict[str, Any]:

@@ -6,6 +6,7 @@ the duplicate by its deterministic message_id."""
 
 import sqlite3
 import threading
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -68,7 +69,7 @@ class Forwarder:
     connection breaks without a clean disconnect (crash, kill, network)."""
 
     def __init__(self, settings: MqttSettings, gateway_id: str, buffer: Buffer, session: str,
-                 max_in_flight: int = 20) -> None:
+                 max_in_flight: int = 20, ack_timeout_s: float = 10.0, reconnect_hold_s: float = 3.0) -> None:
         import json
 
         self.buffer = buffer
@@ -82,10 +83,15 @@ class Forwarder:
         self.client.on_publish = self._on_publish
         self.settings = settings
         self.max_in_flight = max_in_flight
+        self.ack_timeout_s = ack_timeout_s
+        self.reconnect_hold_s = reconnect_hold_s
+        self._send_after = 0.0
+        self._sent_at: dict[int, float] = {}  # paho mid -> monotonic time of publish
         self.connected = threading.Event()
         self.wake = threading.Event()
         self._in_flight: dict[int, int] = {}  # paho mid -> buffer id
-        self._early_acks: set[int] = set()  # PUBACK seen before the mid was recorded
+        self._early_acks: set[int] = set()
+        self._announce = False  # PUBACK seen before the mid was recorded
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, name="forwarder", daemon=True)
@@ -94,7 +100,14 @@ class Forwarder:
         if reason_code.is_failure:
             log.error("gateway_connect_failed", reason=str(reason_code))
             return
-        client.publish(self.status_topic, self.online, qos=1, retain=True)
+        # Publishing from a paho callback while another thread publishes can
+        # deadlock inside paho; the forwarder thread announces "online".
+        self._announce = True
+        # Mosquitto 2.0.18 restores sessions but not $share subscriptions
+        # after a restart: until the hub consumers subscribe again, messages
+        # for them are dropped. Hold the backlog briefly after (re)connecting
+        # so they can. See docs/resilience.md.
+        self._send_after = time.monotonic() + self.reconnect_hold_s
         self.connected.set()
         self.wake.set()
         log.info("gateway_connected", backlog=self.buffer.size())
@@ -103,12 +116,14 @@ class Forwarder:
         self.connected.clear()
         with self._lock:
             self._in_flight.clear()  # not acknowledged: will be sent again
+            self._sent_at.clear()
             self._early_acks.clear()
         log.warning("gateway_disconnected", reason=str(reason_code), backlog=self.buffer.size())
 
     def _on_publish(self, client, userdata, mid, reason_code, properties) -> None:
         with self._lock:
             buffer_id = self._in_flight.pop(mid, None)
+            self._sent_at.pop(mid, None)
             if buffer_id is None:
                 self._early_acks.add(mid)
         if buffer_id is not None:
@@ -120,7 +135,21 @@ class Forwarder:
             if not self.connected.is_set():
                 self.connected.wait(1)
                 continue
+            if time.monotonic() < self._send_after:
+                self.wake.wait(0.2)
+                continue
+            if self._announce:
+                self._announce = False
+                self.client.publish(self.status_topic, self.online, qos=1, retain=True)
             with self._lock:
+                # Watchdog: a message without PUBACK for too long is sent
+                # again (consumers drop the duplicate by message_id). This
+                # guarantees progress whatever stalled the first attempt.
+                now = time.monotonic()
+                for mid in [m for m, at in self._sent_at.items() if now - at > self.ack_timeout_s]:
+                    self._sent_at.pop(mid)
+                    stale = self._in_flight.pop(mid, None)
+                    log.warning("gateway_ack_timeout_resend", buffer_id=stale)
                 free = self.max_in_flight - len(self._in_flight)
                 sending = set(self._in_flight.values())
             if free > 0:
@@ -129,12 +158,14 @@ class Forwarder:
                     # thread takes paho's lock and then ours in on_publish.
                     info = self.client.publish(topic, payload, qos=1)
                     if info.rc != mqtt.MQTT_ERR_SUCCESS:
+                        log.warning("gateway_publish_failed", rc=info.rc)
                         break
                     with self._lock:
                         acked = info.mid in self._early_acks
                         self._early_acks.discard(info.mid)
                         if not acked:
                             self._in_flight[info.mid] = buffer_id
+                            self._sent_at[info.mid] = time.monotonic()
                     if acked:
                         self.buffer.delete(buffer_id)
             self.wake.wait(0.5)
