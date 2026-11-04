@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Imports{% endblock %}
+{% block content %}
+<h1>Imports</h1>
+<table>
+  <tr><th>#</th><th>File</th><th>Format</th><th>Status</th><th>Rows ok / rejected</th><th>Finished</th><th>Error</th></tr>
+  {% for r in runs %}
+  <tr><td>{{ r.id }}</td><td>{{ r.file_name }}</td><td>{{ r.format }}</td><td>{{ r.status }}</td><td>{{ r.rows_ok }} / {{ r.rows_rejected }}</td><td>{{ r.finished_at }}</td><td class="muted">{{ r.error or "" }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

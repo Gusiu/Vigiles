@@ -1,0 +1,23 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Local runtime state (scripts/local_up.py, scripts/supervisor.py)
+.local/
+
+# Import directories: only the folders are tracked
+data/inbox/*
+data/archive/*
+data/error/*
+!data/inbox/.gitkeep
+!data/archive/.gitkeep
+!data/error/.gitkeep
+infra/keycloak/realm.json

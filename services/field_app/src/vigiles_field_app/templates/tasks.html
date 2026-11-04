@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Tasks{% endblock %}
+{% block content %}
+<div hx-get="/ui/sync" hx-trigger="load" hx-swap="innerHTML"></div>
+{% include "_offline.html" %}
+<h1>Tasks <span class="muted">{% if show == "mine" %}assigned to me{% else %}all{% endif %}</span></h1>
+<p><a href="?show={{ 'all' if show == 'mine' else 'mine' }}">show {{ 'all' if show == 'mine' else 'mine' }}</a></p>
+<table>
+  <tr><th>Task</th><th>Location</th><th>Status</th><th>Due</th><th>Technician</th></tr>
+  {% for t in tasks %}
+  <tr>
+    <td><a href="/ui/tasks/{{ t.id }}">{{ t.title }}</a> {% if t.asset_id in conflicts %}<span class="badge conflict">in conflict</span>{% endif %}</td>
+    <td>{{ t.label or "" }}</td>
+    <td><span class="badge {{ t.status }}">{{ t.status }}</span></td>
+    <td>{{ t.due_date or "-" }}</td>
+    <td>{{ t.assigned_to or "-" }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">No open tasks.</td></tr>
+  {% endfor %}
+</table>
+<h2>Recently closed</h2>
+<table>
+  {% for t in done %}<tr><td>{{ t.title }}</td><td><span class="badge {{ t.status }}">{{ t.status }}</span></td></tr>{% endfor %}
+</table>
+{% endblock %}

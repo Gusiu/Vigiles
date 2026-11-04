@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked
+      - run: uv run pytest -m unit
+
+  component:
+    # Same setup as local mode: PostgreSQL 16 and Mosquitto 2 on the host,
+    # so failure tests can stop and start the database cluster (C5).
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Local infrastructure (PostgreSQL, Mosquitto, roles, .env)
+        run: python3 scripts/local_up.py
+      - run: uv sync --locked
+      - run: uv run pytest -m component
+      - name: End-to-end and failure tests on local processes
+        run: uv run pytest -m "e2e or chaos"
+
+  compose:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Secrets and Keycloak realm
+        run: python3 scripts/gen_secrets.py
+      - run: sudo chmod -R a+rwX data
+      - name: Start the full stack
+        run: docker compose up -d --build --wait --wait-timeout 600
+      - name: Smoke test (S1, S4, Keycloak tokens)
+        run: scripts/compose_smoke.sh
+      - if: failure()
+        run: docker compose logs
+      - if: always()
+        run: docker compose down -v
