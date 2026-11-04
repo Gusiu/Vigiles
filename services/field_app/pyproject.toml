@@ -1,0 +1,19 @@
+[project]
+name = "vigiles-field-app"
+version = "0.1.0"
+description = "System A: field app for technicians with offline work and two-way sync"
+requires-python = ">=3.12,<3.13"
+dependencies = ["vigiles-common", "httpx>=0.27", "uvicorn>=0.32"]
+
+[project.scripts]
+vigiles-field-app = "vigiles_field_app.app:main"
+
+[tool.uv.sources]
+vigiles-common = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vigiles_field_app"]
