@@ -1,15 +1,10 @@
-from typing import Literal
-
-from vigiles_common.config import ServiceSettings
+from vigiles_common.config import AuthSettings
 
 
-class RegistrySettings(ServiceSettings):
+class RegistrySettings(AuthSettings):
     service_name: str = "registry"
     registry_database_url: str
     registry_port: int = 8001
-    auth_mode: Literal["static", "dev", "oidc"] = "static"
-    service_tokens: str = ""  # name=token,... (AUTH_MODE=static)
-    session_secret: str = "change-me-session"
     field_app_url: str = "http://localhost:8002"
     notifier_interval_s: float = 2.0
     outbox_interval_s: float = 1.0

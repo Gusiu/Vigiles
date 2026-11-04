@@ -14,8 +14,7 @@ from pathlib import Path
 import httpx
 from fastapi import FastAPI
 
-from vigiles_common.auth.core import StaticTokenProvider, parse_service_tokens
-from vigiles_common.auth.modes import build_verifier
+from vigiles_common.auth.modes import build_token_provider, build_verifier
 from vigiles_common.correlation import CorrelationIdMiddleware
 from vigiles_common.health import health_router
 from vigiles_common.logging import configure_logging, get_logger
@@ -46,19 +45,13 @@ SUBSCRIPTIONS = {
 }
 
 
-def token_provider(settings: HubSettings):
-    if settings.auth_mode == "static":
-        return StaticTokenProvider(parse_service_tokens(settings.service_tokens)["svc-hub"])
-    raise ValueError(f"AUTH_MODE={settings.auth_mode} is not supported yet")
-
-
 def create_app(settings: HubSettings | None = None) -> FastAPI:
     settings = settings or HubSettings()
     instance = settings.hub_instance
     db = HubDatabase(settings.hub_database_url)
     broadcaster = Broadcaster()
     events = EventLog(instance, broadcaster)
-    tokens = token_provider(settings)
+    tokens = build_token_provider(settings, "svc-hub")
     http = httpx.Client(timeout=settings.http_timeout_s)
     mqtt_settings = MqttSettings(settings.mqtt_host, settings.mqtt_port, "hub", settings.mqtt_hub_password)
 
@@ -149,7 +142,7 @@ def create_app(settings: HubSettings | None = None) -> FastAPI:
     app.state.relay = relay
     app.state.consumers = []
     app.state.faults = faults
-    app.state.verifier = build_verifier(settings.auth_mode, settings.service_tokens)
+    app.state.verifier = build_verifier(settings, audience="hub-api")
     app.add_middleware(CorrelationIdMiddleware)
     install_problem_handlers(app)
     app.include_router(health_router({"database": db.ping}))

@@ -1,18 +1,14 @@
 from pathlib import Path
-from typing import Literal
 
-from vigiles_common.config import ServiceSettings
+from vigiles_common.config import AuthSettings
 
 
-class HubSettings(ServiceSettings):
+class HubSettings(AuthSettings):
     service_name: str = "hub"
     hub_instance: str = "hub-1"
     hub_port: int = 8003
     hub_database_url: str
     registry_url: str = "http://localhost:8001"
-    auth_mode: Literal["static", "dev", "oidc"] = "static"
-    service_tokens: str = ""
-    session_secret: str = "change-me-session"
     mqtt_host: str = "localhost"
     mqtt_port: int = 1883
     mqtt_hub_password: str

@@ -15,7 +15,7 @@ import psycopg
 from psycopg.rows import tuple_row
 from psycopg.types.json import Jsonb
 
-from vigiles_common.auth.core import parse_service_tokens
+from vigiles_common.auth.modes import build_token_provider
 from vigiles_common.logging import get_logger
 from vigiles_common.outbox import OutboxRelay
 from vigiles_registry.db import Database
@@ -53,7 +53,7 @@ def notify_changes(conn: psycopg.Connection, webhook_url: str) -> int | None:
 
 def start_workers(settings: RegistrySettings, database: Database, stop: threading.Event) -> list[threading.Thread]:
     webhook_url = settings.field_app_url.rstrip("/") + "/api/v1/webhooks/registry"
-    token = parse_service_tokens(settings.service_tokens).get("svc-registry") if settings.auth_mode == "static" else None
+    tokens = build_token_provider(settings, "svc-registry")
 
     @contextmanager
     def connect():
@@ -73,7 +73,8 @@ def start_workers(settings: RegistrySettings, database: Database, stop: threadin
         connect,
         httpx.Client(timeout=settings.http_timeout_s),
         instance=f"registry-{socket.gethostname()}",
-        token=lambda: token,
+        token=tokens.token,
+        invalidate_token=tokens.invalidate,
     )
     threads = [
         threading.Thread(target=notifier, name="notifier", daemon=True),

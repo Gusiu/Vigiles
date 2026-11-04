@@ -16,3 +16,17 @@ class ServiceSettings(BaseSettings):
     service_name: str = "vigiles"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
+
+
+class AuthSettings(ServiceSettings):
+    """Authentication settings shared by the HTTP services (AUTH_MODE)."""
+
+    auth_mode: Literal["static", "dev", "oidc"] = "static"
+    service_tokens: str = ""  # static: name=token,...
+    oidc_issuer: str = ""  # compared with the iss claim
+    oidc_jwks_url: str = ""  # internal address of the JWKS
+    oidc_token_url: str = ""  # internal address of the token endpoint
+    oidc_secret_svc_hub: str = ""
+    oidc_secret_svc_field_app: str = ""
+    oidc_secret_svc_registry: str = ""
+    session_secret: str = "change-me-session"
