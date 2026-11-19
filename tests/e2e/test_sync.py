@@ -1,4 +1,4 @@
-"""Scenarios S1-S3 (PLAN.md section 5) on the running local stack."""
+"""Scenarios S1-S3 on the running local stack."""
 
 import re
 

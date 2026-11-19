@@ -1,4 +1,4 @@
-"""Raw device messages in the vendor formats (PLAN.md 6.6) for tests."""
+"""Raw device messages in the vendor formats for tests."""
 
 import itertools
 import json

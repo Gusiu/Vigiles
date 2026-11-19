@@ -1,4 +1,4 @@
--- Hub state (PLAN.md 7.3). Shared by all hub replicas.
+-- Hub state. Shared by all hub replicas.
 
 -- Idempotent Receiver: a consumer processes a message_id once.
 CREATE TABLE processed_messages (

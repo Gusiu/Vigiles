@@ -20,7 +20,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
     "svc-registry": frozenset({"webhook:notify"}),
 }
 
-# Demo users of the identity provider (PLAN.md 11.1) and their roles.
+# Demo users of the identity provider and their roles.
 DEMO_USERS: dict[str, tuple[str, ...]] = {
     "jan.technik": ("technik",),
     "anna.kierownik": ("kierownik",),

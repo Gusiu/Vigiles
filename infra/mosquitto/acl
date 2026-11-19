@@ -1,4 +1,4 @@
-# Topic access per broker user (PLAN.md 11.4).
+# Topic access per broker user.
 user gw-01
 topic write vigiles/raw/+/gw-01/#
 topic write vigiles/status/gw-01

@@ -1,4 +1,4 @@
-"""Role x endpoint -> 200/401/403 for all three APIs (PLAN.md 11.2), with
+"""Role x endpoint -> 200/401/403 for all three APIs, with
 JWTs validated exactly as in AUTH_MODE=dev and oidc."""
 
 import pytest

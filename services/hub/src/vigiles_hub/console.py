@@ -1,5 +1,5 @@
 """Hub API and console: live events (SSE, Wire Tap), dead letters with
-replay, outbox state (PLAN.md 6.3)."""
+replay, outbox state."""
 
 import asyncio
 import json

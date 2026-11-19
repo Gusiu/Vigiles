@@ -1,4 +1,4 @@
-"""Failure scenarios of the 4.0 sync (PLAN.md 10.3): C4 and C1 without the hub.
+"""Failure scenarios of the 4.0 sync: C4 and C1 without the hub.
 
 The outage is shortened from the 60 s of the plan; set CHAOS_OUTAGE_S to
 change it. What matters is that work continues during the outage and

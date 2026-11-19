@@ -1,6 +1,5 @@
 -- Registry schema for file transfer (grade 3.0): sites, zones, assets,
--- devices and the import journal. Values of the enumerations follow the
--- data contract in PLAN.md section 7.1.
+-- devices and the import journal.
 
 CREATE TABLE sites (
     id      bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

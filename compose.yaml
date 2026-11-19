@@ -13,7 +13,7 @@ x-service-env: &service-env
   SERVICE_TOKENS: ${SERVICE_TOKENS:?set it in .env}
   SESSION_SECRET: ${SESSION_SECRET:?set it in .env}
   # Tokens carry the issuer as the browser sees Keycloak; services fetch
-  # keys and tokens over the internal network (PLAN.md pitfall 10).
+  # keys and tokens over the internal network.
   OIDC_ISSUER: http://localhost:8080/realms/vigiles
   OIDC_PUBLIC_URL: http://localhost:8080/realms/vigiles
   OIDC_JWKS_URL: http://keycloak:8080/realms/vigiles/protocol/openid-connect/certs
@@ -65,7 +65,7 @@ services:
       - "8080:8080"
     healthcheck:
       # The image has no curl: plain bash /dev/tcp against the management
-      # port 9000, which is separate from 8080 (PLAN.md pitfall 12).
+      # port 9000, which is separate from 8080.
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
       interval: 10s
       timeout: 5s

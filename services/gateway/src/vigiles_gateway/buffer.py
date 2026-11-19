@@ -106,7 +106,7 @@ class Forwarder:
         # Mosquitto 2.0.18 restores sessions but not $share subscriptions
         # after a restart: until the hub consumers subscribe again, messages
         # for them are dropped. Hold the backlog briefly after (re)connecting
-        # so they can. See docs/resilience.md.
+        # so they can.
         self._send_after = time.monotonic() + self.reconnect_hold_s
         self.connected.set()
         self.wake.set()
@@ -181,6 +181,6 @@ class Forwarder:
         self._stop.set()
         self.wake.set()
         self._thread.join(timeout=5)
-        # A clean disconnect does not trigger the Last Will (PLAN.md pitfall 9).
+        # A clean disconnect does not trigger the Last Will.
         self.client.disconnect()
         self.client.loop_stop()

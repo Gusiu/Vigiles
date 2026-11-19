@@ -4,9 +4,9 @@ Validation: RS256 only (``none`` and HS* are rejected), ``iss``, ``aud``,
 ``exp`` and ``nbf`` checked with 30 s leeway, keys from JWKS through
 ``PyJWKClient`` with a cache. The issuer compared with ``iss`` and the
 JWKS address are configured separately: inside Docker the browser sees
-Keycloak as localhost:8080, the services as keycloak:8080 (PLAN.md
-pitfall 10). Cached keys and tokens keep service calls working while the
-identity provider is down (failure C6).
+Keycloak as localhost:8080, the services as keycloak:8080. Cached keys and
+tokens keep service calls working while the identity provider is down
+(failure C6).
 """
 
 import threading

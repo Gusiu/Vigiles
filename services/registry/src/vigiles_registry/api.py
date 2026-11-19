@@ -1,4 +1,4 @@
-"""Registry REST API (``/api/v1``), contract in PLAN.md section 6.1."""
+"""Registry REST API (``/api/v1``)."""
 
 from datetime import date, datetime
 from typing import Annotated, Any, Literal

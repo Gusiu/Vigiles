@@ -1,5 +1,5 @@
 """Local SQLite database of the field app - deliberately a different model
-from the registry (PLAN.md 7.2). The app keeps working on it while the
+from the registry. The app keeps working on it while the
 registry or the network is unavailable."""
 
 import sqlite3

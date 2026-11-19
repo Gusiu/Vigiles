@@ -50,7 +50,9 @@ def render_realm(values: dict[str, str]) -> None:
     missing = sorted(set(re.findall(r"\$\{([A-Z0-9_]+)\}", template)) - set(values))
     if missing:
         raise SystemExit(f".env lacks {', '.join(missing)}; compare it with .env.example")
-    REALM.write_text(re.sub(r"\$\{([A-Z0-9_]+)\}", lambda m: values[m[1]], template), encoding="utf-8")
+    rendered = re.sub(r"\$\{([A-Z0-9_]+)\}", lambda m: values[m[1]], template)
+    # LF also on Windows; Keycloak reads the realm inside a Linux container.
+    REALM.write_text(rendered, encoding="utf-8", newline="\n")
 
 
 def main() -> None:
@@ -60,7 +62,8 @@ def main() -> None:
     if ENV.exists() and not args.force:
         print(".env exists, keeping it (use --force for new secrets)")
     else:
-        ENV.write_text(generate_env(), encoding="utf-8")
+        # LF also on Windows; bash and other Linux tools read .env.
+        ENV.write_text(generate_env(), encoding="utf-8", newline="\n")
         print("wrote .env with random secrets")
     values = read_env(ENV.read_text(encoding="utf-8"))
     render_realm(values)

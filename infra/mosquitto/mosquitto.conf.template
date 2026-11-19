@@ -11,7 +11,7 @@ acl_file @CONFIG@/acl
 persistence true
 persistence_location @DATA@/
 # Write the in-memory state every second, not only at shutdown, to narrow
-# the window of loss when the broker is killed hard (see docs/resilience.md).
+# the window of loss when the broker is killed hard.
 autosave_interval 1
 autosave_on_changes false
 
