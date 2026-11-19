@@ -1,4 +1,4 @@
-"""Broker security: no anonymous access, ACL per user (PLAN.md 11.4)."""
+"""Broker security: no anonymous access, ACL per user."""
 
 import queue
 import uuid

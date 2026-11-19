@@ -1,6 +1,6 @@
 """MQTT 5 connections with durable sessions and acknowledgement after commit.
 
-Rules from PLAN.md section 18 implemented here:
+Rules implemented here:
 
 * a fixed ``client_id`` per connection (two processes with the same id
   would keep kicking each other off the broker),

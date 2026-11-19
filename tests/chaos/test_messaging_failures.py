@@ -1,4 +1,4 @@
-"""Failure scenarios C2, C3 and C7 (PLAN.md 10.3) on the full local stack."""
+"""Failure scenarios C2, C3 and C7 on the full local stack."""
 
 import os
 import time

@@ -1,4 +1,4 @@
-"""Three-way merge with field ownership (PLAN.md section 8).
+"""Three-way merge with field ownership.
 
 ``base`` is the entity at the revision the client started from, ``current``
 the server state now, ``patch`` the fields the client wants to change.

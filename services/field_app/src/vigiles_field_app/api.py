@@ -1,4 +1,4 @@
-"""Field app API (PLAN.md 6.2)."""
+"""Field app API."""
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse

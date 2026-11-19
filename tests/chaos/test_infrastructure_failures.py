@@ -1,4 +1,4 @@
-"""Failure scenarios C1 (with the hub), C5 and C6 (PLAN.md 10.3)."""
+"""Failure scenarios C1 (with the hub), C5 and C6."""
 
 import os
 import time

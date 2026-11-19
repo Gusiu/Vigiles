@@ -181,6 +181,6 @@ class Forwarder:
         self._stop.set()
         self.wake.set()
         self._thread.join(timeout=5)
-        # A clean disconnect does not trigger the Last Will (PLAN.md pitfall 9).
+        # A clean disconnect does not trigger the Last Will.
         self.client.disconnect()
         self.client.loop_stop()

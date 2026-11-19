@@ -1,4 +1,4 @@
-"""Scenarios S4-S7 (PLAN.md section 5) on the full local stack."""
+"""Scenarios S4-S7 on the full local stack."""
 
 import httpx
 

@@ -17,8 +17,6 @@ ancient Rome established by Augustus in 6 AD.
 | 4.0 | Remote Procedure Invocation: two-way REST sync between the registry and the field app | `v4.0` |
 | 5.0 | Messaging: MQTT, integration hub with EIP patterns, Keycloak, resilience | `v5.0` |
 
-The specification is [`PLAN.md`](PLAN.md).
-
 ## What it does
 
 - **3.0** A contractor drops an asset list (CSV from Excel, cp1250 or
