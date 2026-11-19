@@ -106,7 +106,7 @@ class Forwarder:
         # Mosquitto 2.0.18 restores sessions but not $share subscriptions
         # after a restart: until the hub consumers subscribe again, messages
         # for them are dropped. Hold the backlog briefly after (re)connecting
-        # so they can. See docs/resilience.md.
+        # so they can.
         self._send_after = time.monotonic() + self.reconnect_hold_s
         self.connected.set()
         self.wake.set()

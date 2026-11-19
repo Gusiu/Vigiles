@@ -1,7 +1,7 @@
-"""Observed behaviour of Mosquitto 2.0.18 across a restart (documented in
-docs/resilience.md): the session of a durable client is restored, its
-plain subscriptions too, but its shared ($share) subscriptions are not -
-messages published before the client subscribes again find no receiver.
+"""Observed behaviour of Mosquitto 2.0.18 across a restart: the session of
+a durable client is restored, its plain subscriptions too, but its shared
+($share) subscriptions are not - messages published before the client
+subscribes again find no receiver.
 """
 
 import queue
@@ -57,4 +57,4 @@ def test_shared_subscription_is_not_restored(tmp_path) -> None:
     present, delivered = _after_restart(tmp_path, "$share/g/vigiles/raw/#")
     assert present is True
     if delivered:
-        pytest.fail("Mosquitto now restores $share subscriptions; revisit GATEWAY_RECONNECT_HOLD_S and docs/resilience.md")
+        pytest.fail("Mosquitto now restores $share subscriptions; revisit GATEWAY_RECONNECT_HOLD_S")

@@ -25,22 +25,18 @@ The specification is [`PLAN.md`](PLAN.md).
   UTF-8, `;` or `,`) and a site configuration (JSON) into `data/inbox`.
   The importer validates every row, loads valid rows in one transaction,
   reports rejected rows with reasons and leaves files in the inbox while
-  the database is down. [docs/import.md](docs/import.md)
+  the database is down.
 - **4.0** The registry (System B) and the field app (System A) share no
   database. A webhook makes the field app pull the change feed; inspection
   results are pushed back with their base revision and merged per field;
   concurrent edits of `notes` become conflicts resolved by a manager. The
-  field app works offline. [docs/sync-protocol.md](docs/sync-protocol.md)
+  field app works offline.
 - **5.0** An IoT gateway simulates devices of two vendors and publishes to
   Mosquitto. Two hub replicas normalise, enrich and route the messages,
   aggregate alarm coincidence, and create work orders and incidents in the
   registry through an outbox; invalid messages go to a dead letter channel
   with replay. Keycloak issues OAuth2 tokens; every service enforces
   roles. Every failure scenario has a test.
-  [docs/architecture.md](docs/architecture.md),
-  [docs/patterns.md](docs/patterns.md),
-  [docs/resilience.md](docs/resilience.md),
-  [docs/security.md](docs/security.md)
 
 ## Running with Docker (demo)
 
@@ -58,8 +54,8 @@ scripts/compose_smoke.sh
 
 Registry http://localhost:8001, field app http://localhost:8002, hub
 consoles http://localhost:8003 and :8004, Keycloak http://localhost:8080.
-Users and scenario commands: [docs/runbook-windows.md](docs/runbook-windows.md).
-Video script: [docs/video-script.md](docs/video-script.md).
+Demo users: `anna.kierownik` (registry, hub console), `jan.technik` (field
+app) and `admin` (dead letters), password `DEMO_USER_PASSWORD` from `.env`.
 
 ## Running without Docker
 
@@ -126,8 +122,6 @@ tools/importer/     file transfer importer
 tools/dev_issuer/   token issuer for local mode and tests only
 infra/              postgres, mosquitto, keycloak
 data/samples/       sample input files; inbox/, archive/, error/ are working folders
-scripts/            local_up, supervisor, run_mosquitto, gen_secrets, export_openapi, compose_smoke
+scripts/            local_up, supervisor, run_mosquitto, gen_secrets, compose_smoke
 tests/              unit/, component/, e2e/, chaos/, harness/
-docs/               architecture, patterns, import, sync-protocol, resilience, security,
-                    adr/, api/, asyncapi.yaml, runbook-windows, video-script
 ```
