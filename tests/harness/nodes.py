@@ -2,7 +2,7 @@
 
 ``NodeController`` has two backends with the same interface:
 
-* ``local`` - processes run by ``scripts/supervisor.py`` (cloud sessions),
+* ``local`` - processes run by ``scripts/supervisor.py`` (Linux without Docker, as in CI),
 * ``compose`` - ``docker compose stop/kill/start`` (Windows PC, CI).
 """
 

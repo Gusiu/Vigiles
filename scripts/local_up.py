@@ -1,4 +1,4 @@
-"""Prepare local infrastructure without Docker (cloud sessions, CI-less runs).
+"""Prepare local infrastructure on Linux without Docker (CI and local runs).
 
 Idempotent: installs PostgreSQL 16 and Mosquitto 2 from apt when missing,
 starts PostgreSQL, sets the superuser password and applies
