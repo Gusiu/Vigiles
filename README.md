@@ -104,6 +104,10 @@ uv run pytest -m "e2e or chaos"
 | e2e | scenarios S1-S7 | the local stack, started by the tests |
 | chaos | failures C1-C7 | the local stack + `NodeController` |
 
+Every integration pattern and every failure scenario has a test. Tests
+wait for asynchronous state with `eventually()` from
+`tests/harness/eventually.py`, never with `sleep()`.
+
 CI (`.github/workflows/ci.yml`) runs all levels and a compose smoke test
 with Keycloak.
 
