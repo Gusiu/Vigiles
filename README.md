@@ -11,11 +11,11 @@ ancient Rome established by Augustus in 6 AD.
 > certified fire alarm control panel: in a real building alarms are
 > handled by a panel compliant with EN 54-2.
 
-| Grade | Integration style | Tag |
-|---|---|---|
-| 3.0 | File Transfer: CSV/JSON importer -> PostgreSQL | `v3.0` |
-| 4.0 | Remote Procedure Invocation: two-way REST sync between the registry and the field app | `v4.0` |
-| 5.0 | Messaging: MQTT, integration hub with EIP patterns, Keycloak, resilience | `v5.0` |
+| Grade | Integration style |
+|---|---|
+| 3.0 | File Transfer: CSV/JSON importer -> PostgreSQL |
+| 4.0 | Remote Procedure Invocation: two-way REST sync between the registry and the field app |
+| 5.0 | Messaging: MQTT, integration hub with EIP patterns, Keycloak, resilience |
 
 ## What it does
 
